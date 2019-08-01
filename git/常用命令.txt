@@ -1,0 +1,13 @@
+// 克隆
+git clone -b develop_meta git@git.yonyou.com:bd_ae/bq-conf.git
+
+// 拉代码
+cd ...bq-conf
+git pull --progress -v --no-rebase "origin"
+
+// 切分支
+git checkout develop
+// 再切分支
+git checkout develop_meta
+
+pause
