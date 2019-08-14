@@ -1,0 +1,20 @@
+
+============ 解决写乱码  ============
+
+String newFilePath = "path/to/your/prop.properties";
+try (Writer wr = new OutputStreamWriter(new FileOutputStream(newFilePath), "utf-8");) {
+	getStorysProp().store(wr, null);
+} catch (IOException e) {
+	e.printStackTrace();
+}
+
+=============== 解决读乱码 =========================
+
+Path propPath = Paths.get("path/to/your/prop.properties");
+if (Files.exists(storysPropPath)) {
+	try (InputStream is = Files.newInputStream(propPath)) {
+		props.load(new InputStreamReader(is, "utf-8"));
+	} catch (IOException e) {
+		AELogger.error(e);
+	}
+}
