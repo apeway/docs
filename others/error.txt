@@ -1,0 +1,5 @@
+public static void main(String[] args) {
+	String json = "{\"b\":true}";
+	JSONObject fromObject = JSONObject.fromObject(json);
+	fromObject.getBoolean("a"); // Exception in thread "main" net.sf.json.JSONException: JSONObject["a"] is not a Boolean.
+}
