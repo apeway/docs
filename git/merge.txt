@@ -1,0 +1,6 @@
+~、merge develop代码到release分支
+
+1、pull all :先拉取所有代码到最新状态
+2、merge：先切换分支到release，再merge，from develop to release
+3、confit：如果有冲突，需要多方协商，先解决冲突，然后commit
+4、push：所有分支完成merge之后，每个分支分别 pull——>push

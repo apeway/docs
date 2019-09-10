@@ -1,0 +1,2 @@
+~、撤销未提交的commit，Eclipse下操作方式：
+ShowHistory >> 选中要撤销的那一行的下一行 >> 右键 >> reset >> hard
