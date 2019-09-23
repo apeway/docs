@@ -1,0 +1,53 @@
+  
+=============================================framework=========================================
+mq、rpc
+
+rpc : 代理，动态代理   序列化	nio
+
+=============================================report=========================================
+com.yonyou.bq.rpc.BQRpcInvocationHandler
+com.yonyou.bq.service.utils.HttpUtils
+BQSessionTouchFilter、BQContextFilter ?
+
+
+
+=============================================self=========================================
+ServiceRegister.setServiceBean、ServiceFactory.getService
+context 及 session实现
+
+--------------------------------------------------------------
+
+framework-all.xml
+	<mvc:annotation-driven />
+	framework-dao.xml
+		<context:annotation-config/>
+		com.yonyou.bqcloud.framework.dao.SqlSessionFactoryCache
+		com.yonyou.bqcloud.framework.spring.DataResourceInit
+		com.yonyou.bqcloud.framework.dao.CustomSqlSessionFactory - mybatis
+	framework-service.xml
+	framework-web.xml
+
+这样可行吗？	
+	@Result(column = "task_uid", property = "task.uid"),  
+		@Result(column = "user_uid", property = "user.uid"),
+		@Result(column = "operator_uid", property = "operator.uid")
+
+--------------
+导入本地excel:
+	文件上传，poi读取
+导出excel:
+	poi, 参考报表导出
+	exportExcel(String title, String[] headers,	String[][] dataset
+
+ExcelProcess
+
+
+上传框：FileSourceController.parseFileSource
+上传框保存： FileSourceController.createFileSource
+-------------------------------
+
+
+
+
+
+

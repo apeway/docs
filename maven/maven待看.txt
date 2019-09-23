@@ -1,0 +1,23 @@
+maven简略版笔记
+
+Unix平台安装没看。
+
+		
+================================== bq_report ===========================================		
+bq-framework-base 							maven-dependency-plugin
+bq-framework 								maven-dependency-plugin、maven-surefire-plugin、maven-antrun-plugin  <resources>
+	uap_service_adaptor						<resources>
+		bq_query							<resources>
+			bq_base_service					<resources>
+				bq_base						<resources>
+				bq_report_service			<resources>
+					bq_report				maven-dependency-plugin、maven-war-plugin、<resources>
+				bq_zior						<resources>
+					bq_client_base			<resources>
+						bq_dataset_designer		<resources>
+							bq_report_designer	maven-dependency-plugin、maven-jar-plugin、maven-assembly-plugin、<resources>
+								parent		<modules>、maven-antrun-plugin
+				
+Bq_report <profile>
+Bq_depends <build>
+
