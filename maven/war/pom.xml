@@ -1,0 +1,47 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.liws</groupId>
+	<artifactId>liws-war</artifactId>
+	<packaging>war</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>liws-war Maven Webapp</name>
+	<url>http://maven.apache.org</url>
+	<dependencies>
+		<!-- 配置servlet-api，可解决新建的web项目index.jsp报错 -->
+	    <dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>4.0.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<build>
+		<finalName>liws-war</finalName>
+		
+		<!-- 配置tomcat插件
+			运行：项目右键mavenbuild.. ，输入命令 tomcat7:run 
+			如果要先清理在运行， 则输入命令 clean tomcat7:run
+		 -->
+		<plugins>
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.2</version>
+				<configuration>
+					<!-- 这里的端口可以修改成其他端口，例如：8085 -->
+					<port>8080</port>
+					<!-- 这里的path为/，我们在访问时就不需要加项目名了 -->
+					<path>/liws-war</path>
+					<!-- <uriEncoding>UTF-8</uriEncoding> -->
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
