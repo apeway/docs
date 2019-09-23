@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+	<localRepository>E:\repo</localRepository>
+
+	<pluginGroups>
+		<pluginGroup>org.mortbay.jetty</pluginGroup>
+		<pluginGroup>org.codehaus.cargo</pluginGroup>
+	</pluginGroups>
+
+	<proxies>
+	</proxies>
+
+	<servers>
+		<server>
+			<id>nexus</id>
+		</server>
+		<server>
+			<id>ae_release</id>
+		</server>
+	</servers>
+
+	<mirrors>
+		<mirror>
+			<id>nexus</id>
+			<mirrorOf>*,!thirdparty,!ae_release</mirrorOf>
+			<url>http://maven.yonyou.com/nexus/content/groups/public</url>
+		</mirror>
+		<mirror>
+			<id>thirdparty</id>
+			<mirrorOf>thirdparty</mirrorOf>
+			<name>thirdparty</name>
+			<url>http://maven.yonyou.com/nexus/content/repositories/thirdparty/</url>
+		</mirror>
+		<mirror>
+			<id>ae_release</id>
+			<mirrorOf>ae_release</mirrorOf>
+			<name>ae_release</name>
+			<url>http://maven.yonyou.com/nexus/content/repositories/AE-Releases/</url>
+		</mirror>
+		<mirror>
+			<id>ae-snapshots</id>
+			<mirrorOf>ae-snapshots</mirrorOf>
+			<name>ae-snapshots</name>
+			<url>http://maven.yonyou.com/nexus/content/repositories/AE-Snapshots/</url>
+		</mirror>
+		<mirror>
+			<id>alimaven</id>
+			<name>aliyun maven</name>
+			<url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+			<mirrorOf>central</mirrorOf>
+		</mirror>
+	</mirrors>
+
+	<profiles>
+		<profile>
+			<id>nexus</id>
+			<repositories>
+				<repository>
+					<id>central</id>
+					<url>http://central</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</repository>
+				<repository>
+					<id>thirdparty</id>
+					<url>http://central</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</repository>
+				<repository>
+					<id>ae_release</id>
+					<url>http://central</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</repository>
+				<repository>
+					<id>ae-snapshots</id>
+					<url>http://central</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<id>central</id>
+					<url>http://central</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>true</enabled>
+					</snapshots>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
+
+		<!-- 解决创建的Maven项目默认J2SE-1.5 注意：eclipse的maven-setting中需要指定user-setting -->
+		<profile>
+			<id>jdk-1.8</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+				<jdk>1.8</jdk>
+			</activation>
+			<properties>
+				<maven.compiler.source>1.8</maven.compiler.source>
+				<maven.compiler.target>1.8</maven.compiler.target>
+				<maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
+			</properties>
+		</profile>
+
+	</profiles>
+
+	<activeProfiles>
+		<activeProfile>nexus</activeProfile>
+	</activeProfiles>
+</settings>  
+ 
+ 
