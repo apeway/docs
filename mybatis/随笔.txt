@@ -1,0 +1,4 @@
+mybatis源码分析 http://blog.csdn.net/u010349169/article/category/2363143 
+
+one = @One(select = "com.yonyou.bq.datafill.task.mapper.UserMapper.getFormById"))
+Mybatis 注解中 @One @Many等可以另一个方法，但是那个方法必须是当前Mapper中的方法
