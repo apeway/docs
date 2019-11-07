@@ -1,0 +1,26 @@
+第一章
+1、CRC32
+2、主从master/slave   vs   leader/follower机制
+
+第二章
+
+
+第三章 
+1、io模型
+epoll
+select模型
+2、零拷贝技术
+3、linux wget命令、sudo命令、export命令、
+mv重命名命令
+cp复制文件命令
+
+启动zookeeper
+java -cp zookeeper-3.4.13.jar:lib/slf4j-api-1.7.25.jar:lib/slf4j-log4j12-1.7.25.jar:lib/log4j-1.2.17.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo1.cfg
+或者
+
+
+
+
+
+
+
