@@ -1,0 +1,7 @@
+	通过域账号 PDOMAIN/liws0/password 登录系统后，突然很奇怪的应用一些初始化配置，然后进入系统后的发现跟之前桌
+面不一样了，到"C:\Documents and Settings"下去看，发现"C:\Documents and Settings"下多了一个新的空的工作目录
+"C:\Documents and Settings\liws0.PDOMAIN"。且桌面的内容跟"C:\Documents and Settings\All Users\桌面" 中内容一致。
+	以上能得出结论：系统启动没有加载"C:\Documents and Settings\liws0"这个用户目录，而是加载新生成的
+"C:\Documents and Settings\liws0.PDOMAIN"目录。如何解决呢？
+	首先注销并用administrator登录系统，然后删除"C:\Documents and Settings\liws0.PDOMAIN"目录，并将liws0目录重命名
+为liws0.PDOMAIN，重启就好了。

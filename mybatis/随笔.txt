@@ -2,3 +2,14 @@ mybatis源码分析 http://blog.csdn.net/u010349169/article/category/2363143
 
 one = @One(select = "com.yonyou.bq.datafill.task.mapper.UserMapper.getFormById"))
 Mybatis 注解中 @One @Many等可以另一个方法，但是那个方法必须是当前Mapper中的方法
+
+====================================================
+
+1、resultMap VS resultType
+
+2、怎么确定parameterType？ 
+	int, string, map, VO类
+	
+3、获取自增主键
+
+4、resultMap的子元素中jdbcType和javaType作用，什么时候需要配置
