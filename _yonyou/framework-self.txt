@@ -1,0 +1,56 @@
+	
+======================================================	
+	.store
+	.file
+	.shiro
+	.entitymgr 	:	?
+	.db			:	?
+	自助 serviceFactory一套
+	BaseService 加载Mapper
+	com.yonyou.bq.common.util
+	DONE com.yonyou.bqcloud.framework.util
+	tag相关
+	com.yonyou.bq.desktop.entity 一套
+	sqlexecutor 数据缓存
+	DataSourceService	
+	-----------------------------------
+	com.yonyou.bqcloud		:	这里还有用吗？
+	com.yonyou..uap.smart	:	这里还有用吗？
+	
+================================================
+ExcelMetaNameUtils
+RealTimeKafkaClient
+
+com.yonyou.bq.framework.util.HttpUtils
+com.yonyou.bq.dataview.exec.utils.HttpUtils
+com.yonyou.bq.service.utils.HttpUtils
+
+
+====================== self配置 ================
+web.xml	
+	framework-all.xml
+		framework/config/dao/framework-dao.xml
+			applicationContext-framework.xml
+			framework/config/dao/mybatis-config.xml
+		framework/config/service/framework-service.xml
+			framework/config/service/service-server-config.xml
+				applicationContext-shiro.xml
+				config/services/servicelist-*.xml
+					config/services/servicelist-framework.xml
+					config/services/servicelist-war.xml
+					config/services/servicelist-service.xml
+						config/services/filestore.xml
+			framework/config/service/service-client-config.xml						： 空的
+		framework/config/web/framework-web.xml
+			config/web/websrvlist-*.xml												
+				config/web/websrvlist-service.xml	【spring-websocket】
+	spring-mvc-self.xml
+---------------------
+formatter.xml				：	？？？？
+dao-application.xml：	老cloud代码的mybatis配置
+email-acept.xml	： ？？？
+analytic-product.xml ：AnalyticObjectOperateUtil使用
+mq-listeners.xml	： 老cloud代码mq配置
+logback.xml			： 应该是老cloud的日志配置
+
+

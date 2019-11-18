@@ -1,0 +1,42 @@
+==========报表=========
+
+IBQDataSetService
+
+BQAnaObjCacheUtils
+	服务端缓存AnalyticObjServerCache>>单例的BQSessionCache
+	（客户端缓存AnalyticObjClientCache>>单例的BQEntityCache）
+	
+
+新报表参数、查询方案
+
+交叉表
+
+com.yonyou.bq.sessionsession、
+rpc
+
+为什么用EHCache?
+
+	bq_base_service/sql/init.sql
+	
+
+	
+	
+	
+==========
+主对象（被依赖对象）  			：	prior
+依赖主对象的对象（依赖对象）	：	following
+
+=============
+TimedMap
+OrderRetainingMap
+
+============ 筛选控件怎么区分选择：   空值、全部
+
+================ 如何调前端数据
+GridModelJsonAdaptor.getDynamicModelJSON >> cellToJSONObject
+
+===================== 问题 :更新数据集后，参数框引用的还是老数据集
+DataSrcSmartModelPanel.cache_smartModel
+
+
+============= 预览限制1w行 ：ReportLwService

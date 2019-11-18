@@ -1,0 +1,102 @@
+=================================== console + framework ====================================================	
+	.filter		:		
+		BaseFilter		:	云版本才配置，接友互通
+		DomainFilter	:	域过滤器
+		FilterUtils		:	工具类（shiro相关）
+	.service	:	
+	.dao、.concurrent	:	jpa方式的持久化
+		IBaseDAO 与 BaseDAOImpl 实现可以注意一下
+	.schedule、.task.exedb	:	调度相关
+	.third		:	第三方集成
+=========================== bq_framework ==================================
+由于bq_framework.jar被report\console\self等多个war所依赖，所以被放到tomcat的extlib下。
+	~ 同理bq_framework中的一些代码会涉及多种classLoader，classLoader相关：
+		AELocator
+			AEInvocationHandler
+			SpringContextHolder
+		ContextClassLoaderHelper
+		AELogger
+		transloader相关
+		SerializationUtils、AEObjectInputStream（解决resolveClass时的ClassNotFoundException）
+	-----------------------------	
+	bq_jsqlparser
+	bq_root			: 	这个是不是没用了
+	-----------------------------	
+	.annotation
+	.vo.json
+	.vo
+	.validate
+	.i18n
+	.log
+	----------------------------
+	.cache、.redis	:	缓存
+	.repository		:
+	.datasource		:	
+	.meta			:
+	.spring	、.transactional		:	spring核心
+		AELocator >> SpringContextHolder >> AEInvocationHandler[?]
+	.shiro			:
+		登录机制
+	.util
+		GloabalLocker
+		其它
+	.transloader	: 	干嘛的？
+	-------------------------------
+	.upgrade		:	byMe升级
+	.shell			:	main方法支持改资源库密码
+	-------------------------------
+不用管的 {
+	.user.config   	集成相关
+	.rpc		:	没用上的代码
+	.vfs		:	没了
+	.mail		:	没了
+	.dubbo		:	没了
+}
+=================================== console ====================================================	
+	.wechat 	: 	byMe
+	.sms		: 	byMe
+	-------------------------------
+	.fs			:	文件服务器
+	.controller	:	控制台的rest
+		登录机制
+		分析云license机制(包含.license)
+		其它...
+	.active		:	激活（可以只管私有云）
+	.backup		:	备份恢复相关服务
+	-- web.xml中的druidServlet
+	-------------------------------
+不用管的 {
+	.storyplan	:	故事板跳转方案
+	.meta.db	:	元数据扫描
+}
+
+========================== console配置  ============================
+web.xml
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+
+=======================
+public static String getUserPk(){
+		if(UserManager.getLoginUser() != null)
+			return UserManager.getLoginUser().getUserPk();//通过页面访问的使用这种获取方式
+		else if(Context.current() != null && Context.current().getLoginUser() != null)
+			return Context.current().getLoginUser().getUid();//通过调度等访问的使用这种获取方式
+		else
+			return null;
+	}
+============  sql ===============
+BQSqlExecutor。query
+
+Objects.toString	
+		
