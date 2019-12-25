@@ -13,3 +13,6 @@ Mybatis 注解中 @One @Many等可以另一个方法，但是那个方法必须是当前Mapper中的方法
 3、获取自增主键
 
 4、resultMap的子元素中jdbcType和javaType作用，什么时候需要配置
+	org.apache.ibatis.type.JdbcType
+	使用MyBatis框架做更新操作时，在该字段需要更新的内容为空时，就会出现1111错误，也就是无效的列类型，这个时候你就要使用jdbcType。
+至于什么时候要使用到javaType我还没遇到过，而且我也没有听说过要使用javaType。
