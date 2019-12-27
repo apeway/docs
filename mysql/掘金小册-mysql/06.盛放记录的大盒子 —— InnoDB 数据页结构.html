@@ -1,14 +1,14 @@
 <h1 class="heading">InnoD 数据页结构</h1>
 <p>标签： MySQL 是怎样运行的</p>
 <hr>
-<h2 class="heading">不同类型的页简介</h2>
-<p>前边我们简单提了一下<code>页</code>的概念，它是<code>InnoDB</code>管理存储空间的基本单位，一个页的大小一般是<code>16KB</code>。<code>InnoDB</code>为了不同的目的而设计了许多种不同类型的<code>页</code>，比如存放表空间头部信息的页，存放<code>Insert Buffer</code>信息的页，存放<code>INODE</code>信息的页，存放<code>undo</code>日志信息的页等等等等。当然了，如果我说的这些名词你一个都没有听过，就当我放了个屁吧～ 不过这没有一毛钱关系，我们今儿个也不准备说这些类型的页，我们聚焦的是那些存放我们表中记录的那种类型的页，官方称这种存放记录的页为索引（<code>INDEX</code>）页，鉴于我们还没有了解过索引是个什么东西，而这些表中的记录就是我们日常口中所称的<code>数据</code>，所以目前还是叫这种存放记录的页为<code>数据页</code>吧。</p>
-<h2 class="heading">数据页结构的快速浏览</h2>
+<h2 class="heading" style="color:green">不同类型的页简介</h2>
+<p>前边我们简单提了一下<code>页</code>的概念，它是<code>InnoDB</code>管理存储空间的基本单位，一个页的大小一般是<code>16KB</code>。<code>InnoDB</code>为了不同的目的而设计了许多种不同类型的<code>页</code>，比如存放表空间头部信息的页，存放<code>Insert Buffer</code>信息的页，存放<code>INODE</code>信息的页，存放<code>undo</code>日志信息的页等等等等。当然了，如果我说的这些名词你一个都没有听过，就当我放了个屁吧～ </p><p>不过这没有一毛钱关系，我们今儿个也不准备说这些类型的页，<span style="color:red">我们聚焦的是那些存放我们表中记录的那种类型的页，官方称这种存放记录（日常称记录为数据）的页为索引（<code>INDEX</code>）页</span>，鉴于我们还没有了解过索引是个什么东西，所以目前还是叫这种存放记录的页为<code style="color:red">数据页</code>吧。</p>
+<h2 class="heading" style="color:green">数据页结构的快速浏览</h2>
 <p>数据页代表的这块<code>16KB</code>大小的存储空间可以被划分为多个部分，不同部分有不同的功能，各个部分如图所示：</p>
 <p></p><figure><img alt="image_1crh8esga1j5l1d6f1idggech95p.png-69kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faa7d2c1dfc?w=493&amp;h=494&amp;f=png&amp;s=70700"><figcaption></figcaption></figure><p></p>
 <p>从图中可以看出，一个<code>InnoDB</code>数据页的存储空间大致被划分成了<code>7</code>个部分，有的部分占用的字节数是确定的，有的部分占用的字节数是不确定的。下边我们用表格的方式来大致描述一下这7个部分都存储一些啥内容（快速的瞅一眼就行了，后边会详细唠叨的）：</p>
 <table>
-<thead>
+<thead style="color:red">
 <tr>
 <th style="text-align:center">名称</th>
 <th style="text-align:center">中文名</th>
@@ -64,11 +64,11 @@
 <blockquote class="warning"><p>小贴士：
 
 我们接下来并不打算按照页中各个部分的出现顺序来依次介绍它们，因为各个部分中会出现很多大家目前不理解的概念，这会打击各位读文章的信心与兴趣，希望各位能接受这种拍摄手法～
-</p></blockquote><h2 class="heading">记录在页中的存储</h2>
+</p></blockquote><h2 class="heading" style="color:green">记录在页中的存储</h2>
 <p>在页的7个组成部分中，我们自己存储的记录会按照我们指定的<code>行格式</code>存储到<code>User Records</code>部分。但是在一开始生成页的时候，其实并没有<code>User Records</code>这个部分，每当我们插入一条记录，都会从<code>Free Space</code>部分，也就是尚未使用的存储空间中申请一个记录大小的空间划分到<code>User Records</code>部分，当<code>Free Space</code>部分的空间全部被<code>User Records</code>部分替代掉之后，也就意味着这个页使用完了，如果还有新的记录插入的话，就需要去申请新的页了，这个过程的图示如下：</p>
 <p></p><figure><img alt="image_1cosvi1in9st476cdqfki1n39m.png-133.8kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faa7f39b19b?w=1272&amp;h=475&amp;f=png&amp;s=137021"><figcaption></figcaption></figure><p></p>
 <p>为了更好的管理在<code>User Records</code>中的这些记录，<code>InnoDB</code>可费了一番力气呢，在哪费力气了呢？不就是把记录按照指定的行格式一条一条摆在<code>User Records</code>部分么？其实这话还得从记录行格式的<code>记录头信息</code>中说起。</p>
-<h3 class="heading">记录头信息的秘密</h3>
+<h3 class="heading" style="color:blue">记录行格式的头信息的秘密</h3>
 <p>为了故事的顺利发展，我们先创建一个表：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; CREATE TABLE page_demo(
     -&gt;     c1 INT,
@@ -77,7 +77,7 @@
     -&gt;     PRIMARY KEY (c1)
     -&gt; ) CHARSET=ascii ROW_FORMAT=Compact;
 Query OK, 0 rows affected (0.03 sec)
-</code></pre><p>这个新创建的<code>page_demo</code>表有3个列，其中<code>c1</code>和<code>c2</code>列是用来存储整数的，<code>c3</code>列是用来存储字符串的。需要注意的是，<span style="color:red">我们把 <em><strong>c1</strong></em> 列指定为主键，所以在具体的行格式中InnoDB就没必要为我们去创建那个所谓的 <em><strong>row_id</strong></em> 隐藏列了</span>。而且我们为这个表指定了<code>ascii</code>字符集以及<code>Compact</code>的行格式。所以这个表中记录的行格式示意图就是这样的：</p>
+</code></pre><p>这个新创建的<code>page_demo</code>表有3个列，其中<code>c1</code>和<code>c2</code>列是用来存储整数的，<code>c3</code>列是用来存储字符串的。<span style="color:red">需要注意的是，我们把 <em><strong>c1</strong></em> 列指定为主键，所以在具体的行格式中InnoDB就没必要为我们去创建那个所谓的 <em><strong>row_id</strong></em> 隐藏列了</span>。而且我们为这个表指定了<code>ascii</code>字符集以及<code>Compact</code>的行格式。所以这个表中记录的行格式示意图就是这样的：</p>
 <p></p><figure><img alt="image_1c9o2eib2vl11qnf1dfl1d2lco313.png-76.4kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faa7fb96a2b?w=1121&amp;h=474&amp;f=png&amp;s=78271"><figcaption></figcaption></figure><p></p>
 <p>从图中可以看到，我们特意把<code>记录头信息</code>的5个字节的数据给标出来了，说明它很重要，我们再次先把这些<code>记录头信息</code>中各个属性的大体意思浏览一下（我们目前使用<code>Compact</code>行格式进行演示）：</p>
 <table>
@@ -142,12 +142,12 @@ Records: 4  Duplicates: 0  Warnings: 0
 <p>看这个图的时候需要注意一下，各条记录在<code>User Records</code>中存储的时候并没有空隙，这里只是为了大家观看方便才把每条记录单独画在一行中。我们对照着这个图来看看记录头信息中的各个属性是啥意思：</p>
 <ul>
 <li>
-<p><code>delete_mask</code></p>
+<p><code style="color:red">delete_mask</code></p>
 <p>这个属性标记着当前记录是否被删除，占用1个二进制位，值为<code>0</code>的时候代表记录并没有被删除，为<code>1</code>的时候代表记录被删除掉了。</p>
-<p>啥？被删除的记录还在<code>页</code>中么？是的，摆在台面上的和背地里做的可能大相径庭，你以为它删除了，可它还在真实的磁盘上[摊手]（忽然想起冠希～）。这些被删除的记录之所以不立即从磁盘上移除，是因为移除它们之后把其他的记录在磁盘上重新排列需要性能消耗，所以只是打一个删除标记而已，所有被删除掉的记录都会组成一个所谓的<code>垃圾链表</code>，在这个链表中的记录占用的空间称之为所谓的<code>可重用空间</code>，之后如果有新记录插入到表中的话，可能把这些被删除的记录占用的存储空间覆盖掉。</p>
+<p>啥？被删除的记录还在<code>页</code>中么？是的，摆在台面上的和背地里做的可能大相径庭，你以为它删除了，可它还在真实的磁盘上[摊手]（忽然想起冠希～）。<u>这些被删除的记录之所以不立即从磁盘上移除，是因为移除它们之后把其他的记录在磁盘上重新排列需要性能消耗，所以只是打一个删除标记而已；所有被删除掉的记录都会组成一个所谓的<code style="color:red">垃圾链表</code>，在这个链表中的记录占用的空间称之为所谓的<code style="color:red">可重用空间</code>，之后如果有新记录插入到表中的话，可能把这些被删除的记录占用的存储空间覆盖掉。</u></p>
 <blockquote class="warning"><p>小贴士：
 
-将这个delete_mask位设置为1和将被删除的记录加入到垃圾链表中其实是两个阶段，我们后边在介绍事务的时候会详细唠叨删除操作的详细过程，稍安勿躁。
+将这个delete_mask位设置为1和将被删除的记录加入到垃圾链表中其实<span style="color:red">是两个阶段</span>，我们后边在介绍事务的时候会详细唠叨删除操作的详细过程，稍安勿躁。
 </p></blockquote></li>
 <li>
 <p><code>min_rec_mask</code></p>
@@ -158,16 +158,16 @@ Records: 4  Duplicates: 0  Warnings: 0
 <p>这个暂时保密，稍后它是主角～</p>
 </li>
 <li>
-<p><code>heap_no</code></p>
-<p>这个属性表示当前记录在本<code>页</code>中的位置，从图中可以看出来，我们插入的4条记录在本<code>页</code>中的位置分别是：<code>2</code>、<code>3</code>、<code>4</code>、<code>5</code>。是不是少了点啥？是的，怎么不见<code>heap_no</code>值为<code>0</code>和<code>1</code>的记录呢？</p>
-<p>这其实是设计<code>InnoDB</code>的大叔们玩的一个小把戏，他们自动给每个页里边儿加了两个记录，由于这两个记录并不是我们自己插入的，所以有时候也称为<code>伪记录</code>或者<code>虚拟记录</code>。这两个伪记录一个代表<code>最小记录</code>，一个代表<code>最大记录</code>，等一下哈~，记录可以比大小么？</p>
-<p>是的，记录也可以比大小，对于<span style="color:red">一条完整的记录</span>来说，比较记录的大小就是比较<code>主键</code>的大小。比方说我们插入的4行记录的主键值分别是：<code>1</code>、<code>2</code>、<code>3</code>、<code>4</code>，这也就意味着这4条记录的大小从小到大依次递增。</p>
+<p><code style="color:red">heap_no</code></p>
+<p>这个属性表示当前记录在本<code>页</code>中的位置，从图中可以看出来，我们插入的4条记录在本<code>页</code>中的位置分别是：<code>2</code>、<code>3</code>、<code>4</code>、<code>5</code>。是不是少了点啥？是的，<span style="color:red">怎么不见<code>heap_no</code>值为<code>0</code>和<code>1</code>的记录呢？</span></p>
+<p>这其实是设计<code>InnoDB</code>的大叔们玩的一个小把戏，他们自动给每个页里边儿加了两个记录，由于这两个记录并不是我们自己插入的，所以有时候也称为<code style="color:red">伪记录（或者虚拟记录）</code>。这两个伪记录一个代表<code style="color:red">最小记录</code>，一个代表<code style="color:red">最大记录</code>，等一下哈~，记录可以比大小么？</p>
+<p>是的，<span style="color:red">记录也可以比大小，对于<code style="color:blue">一条完整的记录</code>来说，比较记录的大小就是比较<code style="color:blue">主键</code>的大小</span>。比方说我们插入的4行记录的主键值分别是：<code>1</code>、<code>2</code>、<code>3</code>、<code>4</code>，这也就意味着这4条记录的大小从小到大依次递增。</p>
 <blockquote class="warning"><p>小贴士：
 
-请注意我强调了对于`一条完整的记录`来说，比较记录的大小就相当于比的是主键的大小。后边我们还会介绍只存储一条记录的部分列的情况，敬请期待～
+请注意我强调了对于`一条完整的记录`来说，比较记录的大小就相当于比的是主键的大小。后边我们还会介绍<u>只存储一条记录的部分列的情况</u>，敬请期待～
 </p></blockquote><p>但是不管我们向<code>页</code>中插入了多少自己的记录，设计<code>InnoDB</code>的大叔们都规定他们定义的两条伪记录分别为最小记录与最大记录。这两条记录的构造十分简单，都是由5字节大小的<code>记录头信息</code>和8字节大小的一个固定的部分组成的，如图所示</p>
 <p></p><figure><img alt="image_1c9ra45eam7t1mil9o1h3ucqdhv.png-50.4kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faaae699d06?w=576&amp;h=395&amp;f=png&amp;s=51648"><figcaption></figcaption></figure><p></p>
-<p>由于这两条记录不是我们自己定义的记录，所以它们并不存放在<code>页</code>的<code>User Records</code>部分，他们被单独放在一个称为<code>Infimum + Supremum</code>的部分，如图所示：</p>
+<p style="color:red">由于这两条记录不是我们自己定义的记录，所以它们并不存放在<code>页</code>的<code>User Records</code>部分，他们被单独放在一个称为<code>Infimum + Supremum</code>的部分，如图所示：</p>
 <p></p><figure><img alt="image_1c9qs1mn2t3j1nt344116nk15uf2p.png-119.7kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faa7fb8234e?w=1020&amp;h=458&amp;f=png&amp;s=122559"><figcaption></figcaption></figure><p></p>
 <p>从图中我们可以看出来，最小记录和最大记录的<code>heap_no</code>值分别是<code>0</code>和<code>1</code>，也就是说它们的位置最靠前。</p>
 </li>
@@ -178,7 +178,7 @@ Records: 4  Duplicates: 0  Warnings: 0
 </li>
 <li>
 <p><code>next_record</code></p>
-<p>这玩意儿非常重要，它表示<span style="color:red">从当前记录的真实数据到下一条记录的真实数据的地址偏移量</span>。比方说第一条记录的<code>next_record</code>值为<code>32</code>，意味着从第一条记录的真实数据的地址处向后找<code>32</code>个字节便是下一条记录的真实数据。如果你熟悉数据结构的话，就立即明白了，这其实是个<code>链表</code>，可以通过一条记录找到它的下一条记录。但是需要注意注意再注意的一点是，<span style="color:red"><code>下一条记录</code>指得并不是按照我们插入顺序的下一条记录，而是按照主键值由小到大的顺序的下一条记录</span>。而且规定<span style="color:red"> <em><strong>Infimum记录（也就是最小记录）</strong></em> 的下一条记录就本页中主键值最小的用户记录，而本页中主键值最大的用户记录的下一条记录就是 <em><strong>Supremum记录（也就是最大记录）</strong></em>  </span>，为了更形象的表示一下这个<code>next_record</code>起到的作用，我们用箭头来替代一下<code>next_record</code>中的地址偏移量：</p>
+<p>这玩意儿非常重要，它表示<span style="color:red">从当前记录的真实数据到下一条记录的真实数据的地址偏移量</span>。比方说第一条记录的<code>next_record</code>值为<code>32</code>，意味着从第一条记录的真实数据的地址处向后找<code>32</code>个字节便是下一条记录的真实数据。如果你熟悉数据结构的话，就立即明白了，这其实是个<code style="color:blue">链表</code>，可以通过一条记录找到它的下一条记录。但是需要注意注意再注意的一点是，<span style="color:red"><code style="color:blue">下一条记录</code>指得并不是按照我们插入顺序的下一条记录，而是按照主键值由小到大的顺序的下一条记录</span>。而且规定<span style="color:red"> <em><strong>Infimum记录（也就是最小记录）</strong></em> 的下一条记录就本页中主键值最小的用户记录，而本页中主键值最大的用户记录的下一条记录就是 <em><strong>Supremum记录（也就是最大记录）</strong></em>  </span>，为了更形象的表示一下这个<code>next_record</code>起到的作用，我们用箭头来替代一下<code>next_record</code>中的地址偏移量：</p>
 <p></p><figure><img alt="image_1cot1r96210ph1jng1td41ouj85c13.png-120.5kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faaae5618fb?w=1044&amp;h=549&amp;f=png&amp;s=123443"><figcaption></figcaption></figure><p></p>
 <p>从图中可以看出来，<span style="color:red">我们的记录按照主键从小到大的顺序形成了一个单链表</span>。<code>最大记录</code>的<code>next_record</code>的值为<code>0</code>，这也就是说最大记录是没有<code>下一条记录</code>了，它是这个单链表中的最后一个节点。如果从中删除掉一条记录，这个链表也是会跟着变化的，比如我们把第2条记录删掉：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; DELETE FROM page_demo WHERE c1 = 2;
@@ -195,35 +195,35 @@ Query OK, 1 row affected (0.02 sec)
 <p>所以，<span style="color:red">不论我们怎么对页中的记录做增删改操作，InnoDB始终会维护一条记录的单链表，链表中的各个节点是按照主键值由小到大的顺序连接起来的</span>。</p>
 <blockquote class="warning"><p>小贴士：
 
-你会不会觉得next_record这个指针有点儿怪，为啥要指向记录头信息和真实数据之间的位置呢？为啥不干脆指向整条记录的开头位置，也就是记录的额外信息开头的位置呢？
+<span style="color:red">你会不会觉得next_record这个指针有点儿怪，为啥要指向记录头信息和真实数据之间的位置呢？为啥不干脆指向整条记录的开头位置，也就是记录的额外信息开头的位置呢？</span>
 
-因为这个位置刚刚好，向左读取就是记录头信息，向右读取就是真实数据。而且next_record指针始终是从该位置开始向左读取的第一个属性，这意味着可以非常有效地读取页面中的所有记录，而无需解析变长字段长度列表、NULL值列表之类的可变长度部分。另外，由于从next_record指针处向左读是记录的额外信息部分，所以我们之前说变长字段长度列表、NULL值列表中的信息都是逆序存放的意思大家也就理解了。
+<u>因为这个位置刚刚好，向左读取就是记录头信息，向右读取就是真实数据。而且next_record指针始终是从该位置开始向左读取的第一个属性，这意味着可以非常有效地读取页面中的所有记录，而无需解析变长字段长度列表、NULL值列表之类的可变长度部分。另外，由于从next_record指针处向左读是记录的额外信息部分，所以我们之前说变长字段长度列表、NULL值列表中的信息都是<span style="color:red">逆序</span>存放的意思大家也就理解了。</u>
 </p></blockquote></li>
 </ul>
-<p>再来看一个有意思的事情，因为主键值为<code>2</code>的记录被我们删掉了，但是存储空间却没有回收，如果我们再次把这条记录插入到表中，会发生什么事呢？</p>
+<p style="color:blue">再来看一个有意思的事情，因为主键值为<code>2</code>的记录被我们删掉了，但是存储空间却没有回收，如果我们再次把这条记录插入到表中，会发生什么事呢？</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; INSERT INTO page_demo VALUES(2, 200, <span class="hljs-string">'bbbb'</span>);
 Query OK, 1 row affected (0.00 sec)
 </code></pre><p>我们看一下记录的存储情况：</p>
 <p></p><figure><img alt="image_1cot2j9n94a511jd15clrrfp6p1t.png-137.8kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faaae8b46cd?w=1120&amp;h=557&amp;f=png&amp;s=141111"><figcaption></figcaption></figure><p></p>
 <p>从图中可以看到，<code>InnoDB</code>并没有因为新记录的插入而为它申请新的存储空间，而是直接复用了原来被删除记录的存储空间。</p>
-<blockquote class="warning"><p>小贴士：
+<blockquote class="warning"><p style="color:red">小贴士：
 
 当数据页中存在多条被删除掉的记录时，这些记录的next_record属性将会把这些被删除掉的记录组成一个垃圾链表，以备之后重用这部分存储空间。
-</p></blockquote><h2 class="heading">Page Directory（页目录）</h2>
-<p>现在我们了解了记录在页中按照主键值由小到大顺序串联成一个单链表，那如果我们想根据主键值查找页中的某条记录该咋办呢？比如说这样的查询语句：</p>
+</p></blockquote><h2 class="heading" style="color:green">Page Directory（页目录）</h2>
+<p>现在我们了解了记录在页中按照主键值由小到大顺序串联成一个单链表，<span style="color:blue">那如果我们想根据主键值查找页中的某条记录该咋办呢？</span>比如说这样的查询语句：</p>
 <pre><code class="hljs bash" lang="bash">SELECT * FROM page_demo WHERE c1 = 3;
 </code></pre><p>最笨的办法：从<code>Infimum</code>记录（最小记录）开始，沿着链表一直往后找，总有一天会找到（或者找不到[摊手]），在找的时候还能投机取巧，因为链表中各个记录的值是按照从小到大顺序排列的，所以当链表的某个节点代表的记录的主键值大于你想要查找的主键值时，你就可以停止查找了，因为该节点后边的节点的主键值依次递增。</p>
 <p>这个方法在页中存储的记录数量比较少的情况用起来也没啥问题，比方说现在我们的表里只有<code>4</code>条自己插入的记录，所以最多找<code>4</code>次就可以把所有记录都遍历一遍，但是如果一个页中存储了非常多的记录，这么查找对性能来说还是有损耗的，所以我们说这种遍历查找这是一个<code>笨</code>办法。但是设计<code>InnoDB</code>的大叔们是什么人，他们能用这么笨的办法么，当然是要设计一种更6的查找方式喽，他们从书的目录中找到了灵感。</p>
-<p>我们平常想从一本书中查找某个内容的时候，一般会先看目录，找到需要查找的内容对应的书的页码，然后到对应的页码查看内容。设计<code>InnoDB</code>的大叔们为我们的记录也制作了一个类似的目录，他们的制作过程是这样的：</p>
+<p>我们平常想从一本书中查找某个内容的时候，一般会先看目录，找到需要查找的内容对应的书的页码，然后到对应的页码查看内容。<span style="color:red">设计<code>InnoDB</code>的大叔们为我们的记录也制作了一个类似的目录，他们的制作过程是这样的：</span></p>
 <ol>
 <li>
 <p>将所有正常的记录（包括最大和最小记录，不包括标记为已删除的记录）划分为几个组。</p>
 </li>
 <li>
-<p>每个组的<span style="color:red">最后</span>一条记录（也就是组内最大的那条记录）的头信息中的<code>n_owned</code>属性表示该记录拥有多少条记录，也就是该组内共有几条记录。</p>
+<p>每个组的<span style="color:red">最后</span>一条记录（也就是组内最大的那条记录）的头信息中的<code>n_owned</code>属性表示该记录拥有多少条记录，<u>也就是该组内共有几条记录</u>。</p>
 </li>
 <li>
-<p>将每个组的最后一条记录的地址偏移量单独提取出来按顺序存储到靠近<code>页</code>的尾部的地方，这个地方就是所谓的<code>Page Directory</code>，也就是<code>页目录</code>（此时应该返回头看看页面各个部分的图）。页面目录中的这些地址偏移量被称为<code>槽</code>（英文名：<code>Slot</code>），所以这个页面目录就是由<code>槽</code>组成的。</p>
+<p>将每个组的最后一条记录的地址偏移量单独提取出来按顺序存储到靠近<code>页</code>的尾部的地方，这个地方就是所谓的<code>Page Directory</code>，也就是<code>页目录</code>（此时应该返回头看看页面各个部分的图）。页面目录中的这些地址偏移量被称为<code style="color:blue">槽（Slot）</code>，所以这个页面目录就是由<code>槽</code>组成的。</p>
 </li>
 </ol>
 <p>比方说现在的<code>page_demo</code>表中正常的记录共有6条，<code>InnoDB</code>会把它们分成两组，第一组中只有一个最小记录，第二组中是剩余的5条记录，看下边的示意图：</p>
@@ -246,7 +246,7 @@ Query OK, 1 row affected (0.00 sec)
 <p>哎呀，咋看上去怪怪的，这么乱的图对于我这个强迫症真是不能忍，那我们就暂时不管各条记录在存储设备上的排列方式了，单纯从<span style="color:red">逻辑上</span>看一下这些记录和页目录的关系：</p>
 <p></p><figure><img alt="image_1couate3jr19gc18gl1cva1fcg34.png-100.8kB" src="https://user-gold-cdn.xitu.io/2019/2/22/16910faacfbd4080?w=994&amp;h=550&amp;f=png&amp;s=103256"><figcaption></figcaption></figure><p></p>
 <p>这样看就顺眼多了嘛！为什么最小记录的<code>n_owned</code>值为1，而最大记录的<code>n_owned</code>值为<code>5</code>呢，这里头有什么猫腻么？</p>
-<p>是的，设计<code>InnoDB</code>的大叔们对每个分组中的记录条数是有规定的：<span style="color:red">对于最小记录所在的分组只能有 <em><strong>1</strong></em> 条记录，最大记录所在的分组拥有的记录条数只能在 <em><strong>1~8</strong></em> 条之间，剩下的分组中记录的条数范围只能在是 <em><strong>4~8</strong></em> 条之间</span>。所以分组是按照下边的步骤进行的：</p>
+<p>是的，<span style="color:blue">设计<code>InnoDB</code>的大叔们对每个分组中的记录条数是有规定的：</span><u>对于最小记录所在的分组只能有 <em><strong>1</strong></em> 条记录，最大记录所在的分组拥有的记录条数只能在 <em><strong>1~8</strong></em> 条之间，剩下的分组中记录的条数范围只能在是 <em><strong>4~8</strong></em> 条之间。所以分组是按照下边的步骤进行的：</u></p>
 <ul>
 <li>
 <p>初始情况下一个数据页里只有最小记录和最大记录两条记录，它们分属于两个分组。</p>
@@ -276,22 +276,22 @@ Records: 12  Duplicates: 0  Warnings: 0
 <p>因为<code>high - low</code>的值为1，所以确定主键值为<code>5</code>的记录在<code>槽2</code>对应的组中，接下来就是通过遍历<code>槽2</code>对应的组的链表来进行查找了。由于一个组中包含的记录条数只能是1~8条，所以遍历一个组中的记录的代价是很小的。</p>
 </li>
 </ol>
-<p>所以在一个数据页中查找指定主键值的记录的过程分为两步：</p>
+<p style="color:red">所以在一个数据页中查找指定主键值的记录的过程分为两步：</p>
 <ol>
 <li>
-<p><span style="color:red">通过二分法确定该记录所在的槽</span>。</p>
+<p>通过二分法确定该记录所在的槽。</p>
 </li>
 <li>
-<p><span style="color:red">通过记录的<code>next_record</code>属性遍历该槽所在的组中的各个记录</span>。</p>
+<p>通过记录的<code>next_record</code>属性遍历该槽所在的组中的各个记录。</p>
 </li>
 </ol>
 <blockquote class="warning"><p>小贴士：
 
 如果你不知道二分法是个什么东西，找个基础算法书看看吧。什么？算法书写的看不懂？等我～
-</p></blockquote><h2 class="heading">Page Header（页面头部）</h2>
+</p></blockquote><h2 class="heading" style="color:green">Page Header（页面头部）</h2>
 <p>设计<code>InnoDB</code>的大叔们为了能得到一个数据页中存储的记录的状态信息，比如本页中已经存储了多少条记录，第一条记录的地址是什么，页目录中存储了多少个槽等等，特意在页中定义了一个叫<code>Page Header</code>的部分，它是<code>页</code>结构的第二部分，这个部分占用固定的<code>56</code>个字节，专门存储各种状态信息，具体各个字节都是干嘛的看下表：</p>
 <table>
-<thead>
+<thead style="color:red">
 <tr>
 <th style="text-align:center">名称</th>
 <th style="text-align:center">占用空间大小</th>
@@ -332,7 +332,7 @@ Records: 12  Duplicates: 0  Warnings: 0
 <tr>
 <td style="text-align:center"><code>PAGE_DIRECTION</code></td>
 <td style="text-align:center"><code>2</code>字节</td>
-<td style="text-align:center">记录插入的方向</td>
+<td style="text-align:center">表示最后一条记录插入方向的状态</td>
 </tr>
 <tr>
 <td style="text-align:center"><code>PAGE_N_DIRECTION</code></td>
@@ -390,10 +390,10 @@ Records: 12  Duplicates: 0  Warnings: 0
 “You can't connect the dots looking forward; you can only connect them looking backwards. So you have to trust that the dots will somehow connect in your future.You have to trust in something - your gut, destiny, life, karma, whatever. This approach has never let me down, and it has made all the difference in my life.”
 
 上边这段话纯属心血来潮写的，大意是坚持做自己喜欢的事儿，你在做的时候可能并不能搞清楚这些事儿对自己之后的人生有啥影响，但当你一路走来回头看时，一切都是那么清晰，就像是命中注定的一样。上述内容跟MySQL毫无干系，请忽略～
-</p></blockquote><h2 class="heading">File Header（文件头部）</h2>
+</p></blockquote><h2 class="heading" style="color:green">File Header（文件头部）</h2>
 <p>上边唠叨的<code>Page Header</code>是专门针对<code>数据页</code>记录的各种状态信息，比方说页里头有多少个记录了呀，有多少个槽了呀。我们现在描述的<code>File Header</code>针对各种类型的页都通用，也就是说不同类型的页都会以<code>File Header</code>作为第一个组成部分，它描述了一些针对各种页都通用的一些信息，比方说这个页的编号是多少，它的上一个页、下一个页是谁啦吧啦吧啦～ 这个部分占用固定的<code>38</code>个字节，是由下边这些内容组成的：</p>
 <table>
-<thead>
+<thead style="color:red">
 <tr>
 <th style="text-align:center">名称</th>
 <th style="text-align:center">占用空间大小</th>
@@ -402,22 +402,22 @@ Records: 12  Duplicates: 0  Warnings: 0
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_SPACE_OR_CHKSUM</code></td>
+<td style="text-align:center"><code style="color:red">FIL_PAGE_SPACE_OR_CHKSUM</code></td>
 <td style="text-align:center"><code>4</code>字节</td>
 <td style="text-align:center">页的校验和（checksum值）</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_OFFSET</code></td>
+<td style="text-align:center"><code style="color:red">FIL_PAGE_OFFSET</code></td>
 <td style="text-align:center"><code>4</code>字节</td>
 <td style="text-align:center">页号</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_PREV</code></td>
+<td style="text-align:center"><code style="color:blue">FIL_PAGE_PREV</code></td>
 <td style="text-align:center"><code>4</code>字节</td>
 <td style="text-align:center">上一个页的页号</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_NEXT</code></td>
+<td style="text-align:center"><code style="color:blue">FIL_PAGE_NEXT</code></td>
 <td style="text-align:center"><code>4</code>字节</td>
 <td style="text-align:center">下一个页的页号</td>
 </tr>
@@ -427,7 +427,7 @@ Records: 12  Duplicates: 0  Warnings: 0
 <td style="text-align:center">页面被最后修改时对应的日志序列位置（英文名是：Log Sequence Number）</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_TYPE</code></td>
+<td style="text-align:center"><code style="color:red">FIL_PAGE_TYPE</code></td>
 <td style="text-align:center"><code>2</code>字节</td>
 <td style="text-align:center">该页的类型</td>
 </tr>
@@ -516,7 +516,7 @@ Records: 12  Duplicates: 0  Warnings: 0
 <td style="text-align:center">BLOB页</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>FIL_PAGE_INDEX</code></td>
+<td style="text-align:center"><code style="color:red">FIL_PAGE_INDEX</code></td>
 <td style="text-align:center">0x45BF</td>
 <td style="text-align:center">索引页，也就是我们所说的<code>数据页</code></td>
 </tr>
@@ -531,8 +531,8 @@ Records: 12  Duplicates: 0  Warnings: 0
 </li>
 </ul>
 <p>关于<code>File Header</code>的其他属性我们暂时用不到，等用到的时候再提哈～</p>
-<h2 class="heading">File Trailer</h2>
-<p>我们知道<code>InnoDB</code>存储引擎会把数据存储到磁盘上，但是磁盘速度太慢，需要以<code>页</code>为单位把数据加载到内存中处理，如果该页中的数据在内存中被修改了，那么在修改后的某个时间需要把数据<span style="color:red">同步</span>到磁盘中。但是在同步了一半的时候中断电了咋办，这不是莫名尴尬么？为了检测一个页是否完整（也就是在同步的时候有没有发生只同步一半的尴尬情况），设计<code>InnoDB</code>的大叔们在每个页的尾部都加了一个<code>File Trailer</code>部分，这个部分由<code>8</code>个字节组成，可以分成2个小部分：</p>
+<h2 class="heading" style="color:green">File Trailer</h2>
+<p>我们知道<code>InnoDB</code>存储引擎会把数据存储到磁盘上，但是磁盘速度太慢，需要以<code>页</code>为单位把数据加载到内存中处理，如果该页中的数据在内存中被修改了，那么在修改后的某个时间需要把数据<span style="color:red">同步</span>到磁盘中。但是在同步了一半的时候中断电了咋办，这不是莫名尴尬么？<span style="color:red">为了检测一个页是否完整（也就是在同步的时候有没有发生只同步一半的尴尬情况）</span>，设计<code>InnoDB</code>的大叔们在每个页的尾部都加了一个<code>File Trailer</code>部分，这个部分由<code>8</code>个字节组成，可以分成2个小部分：</p>
 <ul>
 <li>
 <p>前4个字节代表页的校验和</p>
@@ -544,7 +544,7 @@ Records: 12  Duplicates: 0  Warnings: 0
 </li>
 </ul>
 <p>这个<code>File Trailer</code>与<code>FILE Header</code>类似，都是所有类型的页通用的。</p>
-<h2 class="heading">总结</h2>
+<h2 class="heading" style="color:green">总结</h2>
 <ol>
 <li>
 <p>InnoDB为了不同的目的而设计了不同类型的页，我们把用于存放记录的页叫做<code>数据页</code>。</p>
