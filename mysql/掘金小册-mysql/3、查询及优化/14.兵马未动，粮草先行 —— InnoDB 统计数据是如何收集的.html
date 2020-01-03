@@ -1,8 +1,8 @@
 <h1 class="heading">InnoDB 统计数据是如何收集的</h1>
 <p>标签： MySQL 是怎样运行的</p>
 <hr>
-<p>我们前边唠叨查询成本的时候经常用到一些统计数据，比如通过<code>SHOW TABLE STATUS</code>可以看到关于表的统计数据，通过<code>SHOW INDEX</code>可以看到关于索引的统计数据，那么这些统计数据是怎么来的呢？它们是以什么方式收集的呢？本章将聚焦于<code>InnoDB</code>存储引擎的统计数据收集策略，看完本章大家就会明白为啥前边老说<code>InnoDB</code>的统计信息是不精确的估计值了（言下之意就是我们不打算介绍<code>MyISAM</code>存储引擎统计数据的收集和存储方式，有想了解的同学自己个儿看看文档哈）。</p>
-<h2 class="heading">两种不同的统计数据存储方式</h2>
+<p><u>我们前边唠叨查询成本的时候经常用到一些统计数据</u>，比如通过<code>SHOW TABLE STATUS</code>可以看到关于表的统计数据，通过<code>SHOW INDEX</code>可以看到关于索引的统计数据，那么这些统计数据是怎么来的呢？它们是以什么方式收集的呢？<span style="color:red">本章将聚焦于<code>InnoDB</code>存储引擎的统计数据收集策略</span>，看完本章大家就会明白为啥前边老说<code>InnoDB</code>的统计信息是不精确的估计值了（言下之意就是我们<u>不打算介绍<code>MyISAM</code>存储引擎统计数据的收集和存储方式，有想了解的同学自己个儿看看文档哈</u>）。</p>
+<h2 style="color:green" class="heading">两种不同的统计数据存储方式</h2>
 <p><code>InnoDB</code>提供了两种存储统计数据的方式：</p>
 <ul>
 <li>
@@ -14,14 +14,14 @@
 <p>这种统计数据存储在内存中，当服务器关闭时这些这些统计数据就都被清除掉了，等到服务器重启之后，在某些适当的场景下才会重新收集这些统计数据。</p>
 </li>
 </ul>
-<p>设计<code>MySQL</code>的大叔们给我们提供了系统变量<code>innodb_stats_persistent</code>来控制到底采用哪种方式去存储统计数据。在<code>MySQL 5.6.6</code>之前，<code>innodb_stats_persistent</code>的值默认是<code>OFF</code>，也就是说<code>InnoDB</code>的统计数据默认是存储到内存的，之后的版本中<code>innodb_stats_persistent</code>的值默认是<code>ON</code>，也就是统计数据默认被存储到磁盘中。</p>
-<p>不过<code>InnoDB</code>默认是<span style="color:red">以表为单位来收集和存储统计数据的</span>，也就是说我们可以把某些表的统计数据（以及该表的索引统计数据）存储在磁盘上，把另一些表的统计数据存储在内存中。怎么做到的呢？我们可以在创建和修改表的时候通过指定<code>STATS_PERSISTENT</code>属性来指明该表的统计数据存储方式：</p>
-<pre><code class="hljs bash" lang="bash">CREATE TABLE 表名 (...) Engine=InnoDB, STATS_PERSISTENT = (1|0);
+<p><span style="color:red">设计<code>MySQL</code>的大叔们给我们提供了<code style="color:blue">系统变量innodb_stats_persistent</code>来控制到底采用哪种方式去存储统计数据。</span>在<code>MySQL 5.6.6</code>之前，<code>innodb_stats_persistent</code>的值默认是<code>OFF</code>，也就是说<code>InnoDB</code>的统计数据默认是存储到内存的，之后的版本中<code>innodb_stats_persistent</code>的值默认是<code>ON</code>，也就是统计数据默认被存储到磁盘中。</p>
+<p><u>不过<code>InnoDB</code>默认是<span style="color:red">以表为单位来收集和存储统计数据的</span>，也就是说我们可以把某些表的统计数据（以及该表的索引统计数据）存储在磁盘上，把另一些表的统计数据存储在内存中</u>。怎么做到的呢？我们可以在创建和修改表的时候通过指定<code>STATS_PERSISTENT</code>属性来指明该表的统计数据存储方式：</p>
+<pre><code class="hljs bash" lang="bash">CREATE TABLE 表名 (...) Engine=InnoDB, <span style="color:red">STATS_PERSISTENT = (1|0)</span>;
 
-ALTER TABLE 表名 Engine=InnoDB, STATS_PERSISTENT = (1|0);
+ALTER TABLE 表名 Engine=InnoDB, <span style="color:red">STATS_PERSISTENT = (1|0)</span>;
 </code></pre><p>当<code>STATS_PERSISTENT=1</code>时，表明我们想把该表的统计数据永久的存储到磁盘上，当<code>STATS_PERSISTENT=0</code>时，表明我们想把该表的统计数据临时的存储到内存中。如果我们在创建表时未指定<code>STATS_PERSISTENT</code>属性，那默认采用系统变量<code>innodb_stats_persistent</code>的值作为该属性的值。</p>
-<h2 class="heading">基于磁盘的永久性统计数据</h2>
-<p>当我们选择把某个表以及该表索引的统计数据存放到磁盘上时，实际上是把这些统计数据存储到了两个表里：</p>
+<h2 style="color:green" class="heading">基于磁盘的永久性统计数据</h2>
+<p style="color:red">当我们选择把某个表以及该表索引的统计数据存放到磁盘上时，实际上是把这些统计数据存储到了两个表里：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; SHOW TABLES FROM mysql LIKE <span class="hljs-string">'innodb%'</span>;
 +---------------------------+
 | Tables_in_mysql (innodb%) |
@@ -40,7 +40,7 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_PERSISTENT = (1|0);
 </li>
 </ul>
 <p>我们下边的任务就是看一下这两个表里边都有什么以及表里的数据是如何生成的。</p>
-<h3 class="heading">innodb_table_stats</h3>
+<h3 style="color:blue" class="heading">innodb_table_stats</h3>
 <p>直接看一下这个<code>innodb_table_stats</code>表中的各个列都是干嘛的：</p>
 <table>
 <thead>
@@ -63,15 +63,15 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_PERSISTENT = (1|0);
 <td style="text-align:left">本条记录最后更新时间</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>n_rows</code></td>
+<td style="text-align:center"><code style="color:red">n_rows</code></td>
 <td style="text-align:left">表中记录的条数</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>clustered_index_size</code></td>
+<td style="text-align:center"><code style="color:red">clustered_index_size</code></td>
 <td style="text-align:left">表的聚簇索引占用的页面数量</td>
 </tr>
 <tr>
-<td style="text-align:center"><code>sum_of_other_index_sizes</code></td>
+<td style="text-align:center"><code style="color:red">sum_of_other_index_sizes</code></td>
 <td style="text-align:left">表的其他索引占用的页面数量</td>
 </tr>
 </tbody>
@@ -98,25 +98,25 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_PERSISTENT = (1|0);
 <p><code>sum_of_other_index_sizes</code>的值是<code>175</code>，表明<code>single_table</code>表的其他索引一共占用175个页面，这个值是也是一个估计值。</p>
 </li>
 </ul>
-<h4 class="heading">n_rows统计项的收集</h4>
-<p>为啥老强调<code>n_rows</code>这个统计项的值是估计值呢？现在就来揭晓答案。<code>InnoDB</code>统计一个表中有多少行记录的套路是这样的：</p>
+<h4 style="color:brown" class="heading">n_rows统计项的收集</h4>
+<p style="color:blue">为啥老强调<code>n_rows</code>这个统计项的值是估计值呢？现在就来揭晓答案。<code>InnoDB</code>统计一个表中有多少行记录的套路是这样的：</p>
 <ul>
 <li>
 <p>按照一定算法（并不是纯粹随机的）选取几个叶子节点页面，计算每个页面中主键值记录数量，然后计算平均一个页面中主键值的记录数量乘以全部叶子节点的数量就算是该表的<code>n_rows</code>值。</p>
 <blockquote class="warning"><p>小贴士：
 
 真实的计算过程比这个稍微复杂一些，不过大致上就是这样的啦～
-</p></blockquote><p>可以看出来这个<code>n_rows</code>值精确与否取决于统计时采样的页面数量，设计<code>MySQL</code>的大叔很贴心的为我们准备了一个名为<code>innodb_stats_persistent_sample_pages</code>的系统变量来控制<span style="color:red">使用永久性的统计数据时，计算统计数据时采样的页面数量</span>。该值设置的越大，统计出的<code>n_rows</code>值越精确，但是统计耗时也就最久；该值设置的越小，统计出的<code>n_rows</code>值越不精确，但是统计耗时特别少。所以在实际使用是需要我们去权衡利弊，该系统变量的默认值是<code>20</code>。</p>
-<p>我们前边说过，不过<code>InnoDB</code>默认是<span style="color:red">以表为单位来收集和存储统计数据的</span>，我们也可以单独设置某个表的采样页面的数量，设置方式就是在创建或修改表的时候通过指定<code>STATS_SAMPLE_PAGES</code>属性来指明该表的统计数据存储方式：</p>
-<pre><code class="hljs bash" lang="bash">CREATE TABLE 表名 (...) Engine=InnoDB, STATS_SAMPLE_PAGES = 具体的采样页面数量;
+</p></blockquote><p>可以看出来这个<code>n_rows</code>值精确与否取决于统计时采样的页面数量，设计<code>MySQL</code>的大叔很贴心的为我们准备了一个<code style="color:blue">系统变量innodb_stats_persistent_sample_pages</code>来控制使用永久性的统计数据时，计算统计数据时采样的页面数量。该值设置的越大，统计出的<code>n_rows</code>值越精确，但是统计耗时也就最久；该值设置的越小，统计出的<code>n_rows</code>值越不精确，但是统计耗时特别少。所以在实际使用是需要我们去权衡利弊，该系统变量的默认值是<code>20</code>。</p>
+<p>我们前边说过，不过<code>InnoDB</code>默认是以表为单位来收集和存储统计数据的，我们也可以<span style="color:red">单独设置某个表的采样页面的数量</span>，设置方式就是在创建或修改表的时候通过指定<code>STATS_SAMPLE_PAGES</code>属性来指明该表的统计数据存储方式：</p>
+<pre><code class="hljs bash" lang="bash">CREATE TABLE 表名 (...) Engine=InnoDB, <span style="color:red">STATS_SAMPLE_PAGES = 具体的采样页面数量</span>;
 
-ALTER TABLE 表名 Engine=InnoDB, STATS_SAMPLE_PAGES = 具体的采样页面数量;
+ALTER TABLE 表名 Engine=InnoDB, <span style="color:red">STATS_SAMPLE_PAGES = 具体的采样页面数量</span>;
 </code></pre><p>如果我们在创建表的语句中并没有指定<code>STATS_SAMPLE_PAGES</code>属性的话，将默认使用系统变量<code>innodb_stats_persistent_sample_pages</code>的值作为该属性的值。</p>
 </li>
 </ul>
-<h4 class="heading">clustered_index_size和sum_of_other_index_sizes统计项的收集</h4>
-<p>统计这两个数据需要大量用到我们之前唠叨的<code>InnoDB</code>表空间的知识，<span style="color:red">如果大家压根儿没有看那一章，那下边的计算过程大家还是不要看了（看也看不懂）</span>；如果看过了，那大家就会发现<code>InnoDB</code>表空间的知识真是有用啊啊啊！！！</p>
-<p>这两个统计项的收集过程如下：</p>
+<h4 style="color:brown" class="heading">clustered_index_size和sum_of_other_index_sizes统计项的收集</h4>
+<p>统计这两个数据需要大量用到我们之前唠叨的<code>InnoDB</code>表空间的知识，如果大家压根儿没有看那一章，那下边的计算过程大家还是不要看了（看也看不懂）；如果看过了，那大家就会发现<code>InnoDB</code>表空间的知识真是有用啊啊啊！！！</p>
+<p style="color:blue">这两个统计项的收集过程如下：</p>
 <ul>
 <li>
 <p>从数据字典里找到表的各个索引对应的根页面位置。</p>
@@ -154,7 +154,7 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_SAMPLE_PAGES = 具体的采样页面数�
 </li>
 </ul>
 <p>这里需要大家注意一个问题，我们说一个段的数据在非常多时（超过32个页面），会以<code>区</code>为单位来申请空间，这里头的问题是<span style="color:red">以区为单位申请空间中有一些页可能并没有使用</span>，但是在统计<code>clustered_index_size</code>和<code>sum_of_other_index_sizes</code>时都把它们算进去了，所以说聚簇索引和其他的索引占用的页面数可能比这两个值要小一些。</p>
-<h3 class="heading">innodb_index_stats</h3>
+<h3 style="color:blue" class="heading">innodb_index_stats</h3>
 <p>直接看一下这个<code>innodb_index_stats</code>表中的各个列都是干嘛的：</p>
 <table>
 <thead>
@@ -269,7 +269,7 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_SAMPLE_PAGES = 具体的采样页面数�
 对于有多个列的联合索引来说，采样的页面数量是：innodb_stats_persistent_sample_pages × 索引列的个数。当需要采样的页面数量大于该索引的叶子节点数量的话，就直接采用全表扫描来统计索引列的不重复值数量了。所以大家可以在查询结果中看到不同索引对应的size列的值可能是不同的。
 </p></blockquote></li>
 </ul>
-<h3 class="heading">定期更新统计数据</h3>
+<h3 style="color:blue" class="heading">定期更新统计数据</h3>
 <p>随着我们不断的对表进行增删改操作，表中的数据也一直在变化，<code>innodb_table_stats</code>和<code>innodb_index_stats</code>表里的统计数据是不是也应该跟着变一变了？当然要变了，不变的话<code>MySQL</code>查询优化器计算的成本可就差老鼻子远了。设计<code>MySQL</code>的大叔提供了如下两种更新统计数据的方式：</p>
 <ul>
 <li>
@@ -294,7 +294,7 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_AUTO_RECALC = (1|0);
 </code></pre><p>需要注意的是，<span style="color:red">ANALYZE TABLE语句会立即重新计算统计数据，也就是这个过程是同步的</span>，在表中索引多或者采样页面特别多时这个过程可能会特别慢，请不要没事儿就运行一下<code>ANALYZE TABLE</code>语句，最好在业务不是很繁忙的时候再运行。</p>
 </li>
 </ul>
-<h3 class="heading">手动更新<code>innodb_table_stats</code>和<code>innodb_index_stats</code>表</h3>
+<h3 style="color:blue" class="heading">手动更新<code>innodb_table_stats</code>和<code>innodb_index_stats</code>表</h3>
 <p>其实<code>innodb_table_stats</code>和<code>innodb_index_stats</code>表就相当于一个普通的表一样，我们能对它们做增删改查操作。这也就意味着我们可以<span style="color:red">手动更新某个表或者索引的统计数据</span>。比如说我们想把<code>single_table</code>表关于行数的统计书记更改一下可以这么做：</p>
 <ul>
 <li>
@@ -310,11 +310,11 @@ ALTER TABLE 表名 Engine=InnoDB, STATS_AUTO_RECALC = (1|0);
 </code></pre></li>
 </ul>
 <p>之后我们使用<code>SHOW TABLE STATUS</code>语句查看表的统计数据时就看到<code>Rows</code>行变为了<code>1</code>。</p>
-<h2 class="heading">基于内存的非永久性统计数据</h2>
+<h2 style="color:green" class="heading">基于内存的非永久性统计数据</h2>
 <p>当我们把系统变量<code>innodb_stats_persistent</code>的值设置为<code>OFF</code>时，之后创建的表的统计数据默认就都是非永久性的了，或者我们直接在创建表或修改表时设置<code>STATS_PERSISTENT</code>属性的值为<code>0</code>，那么该表的统计数据就是非永久性的了。</p>
 <p>与永久性的统计数据不同，非永久性的统计数据采样的页面数量是由<code>innodb_stats_transient_sample_pages</code>控制的，这个系统变量的默认值是<code>8</code>。</p>
 <p>另外，由于非永久性的统计数据经常更新，所以导致<code>MySQL</code>查询优化器计算查询成本的时候依赖的是经常变化的统计数据，也就会<span style="color:red">生成经常变化的执行计划</span>，这个可能让大家有些懵逼。不过最近的<code>MySQL</code>版本都不咋用这种基于内存的非永久性统计数据了，所以我们也就不深入唠叨它了。</p>
-<h2 class="heading">innodb_stats_method的使用</h2>
+<h2 style="color:green" class="heading">innodb_stats_method的使用</h2>
 <p>我们知道<code>索引列不重复的值的数量</code>这个统计数据对于<code>MySQL</code>查询优化器十分重要，因为通过它可以计算出在索引列中平均一个值重复多少行，它的应用场景主要有两个：</p>
 <ul>
 <li>
@@ -396,7 +396,7 @@ mysql&gt; SELECT NULL != NULL;
 </li>
 </ul>
 <p>反正这个锅是甩给用户了，当你选定了<code>innodb_stats_method</code>值之后，优化器即使选择了不是最优的执行计划，那也跟设计<code>MySQL</code>的大叔们没关系了哈～ 当然对于用户的我们来说，<span style="color:red">最好不在索引列中存放NULL值才是正解</span>。</p>
-<h2 class="heading">总结</h2>
+<h2 style="color:green" class="heading">总结</h2>
 <ul>
 <li>
 <p><code>InnoDB</code>以表为单位来收集统计数据，这些统计数据可以是基于磁盘的永久性统计数据，也可以是基于内存的非永久性统计数据。</p>

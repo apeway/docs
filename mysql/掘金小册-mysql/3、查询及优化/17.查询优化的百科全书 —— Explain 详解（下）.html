@@ -106,7 +106,7 @@
 </code></pre></li>
 <li>
 <p><code>Using join buffer (Block Nested Loop)</code></p>
-<p>在连接查询执行过程过，当被驱动表不能有效的利用索引加快访问速度，<code>MySQL</code>一般会为其分配一块名叫<code>join buffer</code>的内存块来加快查询速度，也就是我们所讲的<code>基于块的嵌套循环算法</code>，比如下边这个查询语句：</p>
+<p>在连接查询执行过程中，当被驱动表不能有效的利用索引加快访问速度，<code>MySQL</code>一般会为其分配一块名叫<code>join buffer</code>的内存块来加快查询速度，也就是我们所讲的<code>基于块的嵌套循环算法</code>，比如下边这个查询语句：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; EXPLAIN SELECT * FROM s1 INNER JOIN s2 ON s1.common_field = s2.common_field;
 +----+-------------+-------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
 | id | select_type | table | partitions | <span class="hljs-built_in">type</span> | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |

@@ -1,21 +1,11 @@
 <h1 class="heading">InnoDB 的表空间</h1>
 <p>标签： MySQL 是怎样运行的</p>
 <hr>
-<p>通过前边儿的内容大家知道，<code>表空间</code>是一个抽象的概念，对于系统表空间来说，对应着文件系统中一个或多个实际文件；对于每个独立表空间来说，对应着文件系统中一个名为<code>表名.ibd</code>的实际文件。大家可以把表空间想象成被切分为许许多多个<code>页</code>的池子，当我们想为某个表插入一条记录的时候，就从池子中捞出一个对应的页来把数据写进去。本章内容会深入到表空间的各个细节中，带领大家在<code>InnoDB</code>存储结构的池子中畅游。由于本章中将会涉及比较多的概念，虽然这些概念都不难，但是却相互依赖，所以奉劝大家在看的时候：</p>
-<ul>
-<li>
-<p><span style="color:red">不要跳着看！</span></p>
-</li>
-<li>
-<p><span style="color:red">不要跳着看！</span></p>
-</li>
-<li>
-<p><span style="color:red">不要跳着看！</span></p>
-</li>
-</ul>
+<p>通过前边儿的内容大家知道，<code>表空间</code>是一个抽象的概念，对于系统表空间来说，对应着文件系统中一个或多个实际文件；对于每个独立表空间来说，对应着文件系统中一个名为<code>表名.ibd</code>的实际文件。<span style="color:red">大家可以把表空间想象成被切分为许许多多个<code>页</code>的池子</span>，当我们想为某个表插入一条记录的时候，就从池子中捞出一个对应的页来把数据写进去。本章内容会深入到表空间的各个细节中，带领大家在<code>InnoDB</code>存储结构的池子中畅游。由于本章中将会涉及比较多的概念，虽然这些概念都不难，但是却相互依赖，所以奉劝大家在看的时候：<span style="color:red">不要跳着看！</span></p>
+
 <h2 class="heading">回忆一些旧知识</h2>
 <h3 class="heading">页面类型</h3>
-<p>再一次强调，InnoDB 是以页为单位管理存储空间的，我们的聚簇索引（也就是完整的表数据）和其他的二级索引都是以<code>B+</code>树的形式保存到表空间的，而<code>B+</code>树的节点就是数据页。我们前边说过，这个数据页的类型名其实是：<code>FIL_PAGE_INDEX</code>，除了这种存放索引数据的页面类型之外，InnoDB 也为了不同的目的设计了若干种不同类型的页面，为了唤醒大家的记忆，我们再一次把各种常用的页面类型提出来：</p>
+<p><u>再一次强调，InnoDB 是以页为单位管理存储空间的，我们的聚簇索引（也就是完整的表数据）和其他的二级索引都是以<code>B+</code>树的形式保存到表空间的，而<code>B+</code>树的节点就是数据页。</u>我们前边说过，这个数据页的类型名其实是：<code>FIL_PAGE_INDEX</code>，除了这种存放索引数据的页面类型之外，InnoDB 也为了不同的目的设计了若干种不同类型的页面，为了唤醒大家的记忆，我们再一次把各种常用的页面类型提出来：</p>
 <table>
 <thead>
 <tr>
@@ -84,7 +74,7 @@
 </table>
 <p>因为页面类型前边都有个<code>FIL_PAGE</code>或者<code>FIL_PAGE_TYPE</code>的前缀，为简便起见我们后边唠叨页面类型的时候就把这些前缀省略掉了，比方说<code>FIL_PAGE_TYPE_ALLOCATED</code>类型称为<code>ALLOCATED</code>类型，<code>FIL_PAGE_INDEX</code>类型称为<code>INDEX</code>类型。</p>
 <h3 class="heading">页面通用部分</h3>
-<p>我们前边说过数据页，也就是<code>INDEX</code>类型的页由7个部分组成，其中的两个部分是所有类型的页面都通用的。当然我不能寄希望于你把我说的话都记住，所以在这里重新强调一遍，任何类型的页面都有下边这种通用的结构：</p>
+<p>我们前边说过数据页，也就是<code>INDEX</code>类型的页由7个部分组成，其中的两个部分是所有类型的页面都通用的。当然我不能寄希望于你把我说的话都记住，<span style="color:red">所以在这里重新强调一遍，任何类型的页面都有下边这种通用的结构：</span></p>
 <p></p><figure><img alt="image_1crjupisqne61uer17ikh6l1v8k9.png-44.9kB" src="https://user-gold-cdn.xitu.io/2018/12/14/167ac6442f4e4edd?w=827&amp;h=525&amp;f=png&amp;s=45934"><figcaption></figcaption></figure><p></p>
 <p>从上图中可以看出，任何类型的页都会包含这两个部分：</p>
 <ul>
@@ -150,10 +140,10 @@
 <p>现在除了名称里边儿带有<code>LSN</code>的两个字段大家可能看不懂以外，其他的字段肯定都是倍儿熟了，不过我们仍要强调这么几点：</p>
 <ul>
 <li>
-<p>表空间中的每一个页都对应着一个页号，也就是<code>FIL_PAGE_OFFSET</code>，这个页号由4个字节组成，也就是32个比特位，所以一个表空间最多可以拥有2³²个页，如果按照页的默认大小16KB来算，一个表空间最多支持64TB的数据。表空间的第一个页的页号为0，之后的页号分别是1，2，3...依此类推</p>
+<p>表空间中的每一个页都对应着一个页号，也就是<code>FIL_PAGE_OFFSET</code>，<u>这个页号由4个字节组成，也就是32个比特位，所以一个表空间最多可以拥有2³²个页，如果按照页的默认大小16KB来算，一个表空间最多支持64TB的数据。表空间的第一个页的页号为0</u>，之后的页号分别是1，2，3...依此类推</p>
 </li>
 <li>
-<p>某些类型的页可以组成链表，链表中的页可以不按照物理顺序存储，而是根据<code>FIL_PAGE_PREV</code>和<code>FIL_PAGE_NEXT</code>来存储上一个页和下一个页的页号。需要注意的是，这两个字段主要是为了<code>INDEX</code>类型的页，也就是我们之前一直说的数据页建立<code>B+</code>树后，为每层节点建立双向链表用的，一般类型的页是不使用这两个字段的。</p>
+<p>某些类型的页可以组成链表，链表中的页可以不按照物理顺序存储，而是根据<code>FIL_PAGE_PREV</code>和<code>FIL_PAGE_NEXT</code>来存储上一个页和下一个页的页号。需要注意的是，这两个字段主要是为了<code>INDEX</code>类型的页，也就是我们之前一直说的数据页建立<code>B+</code>树后，为每层节点建立双向链表用的，<u>一般类型的页是不使用这两个字段的</u>。</p>
 </li>
 <li>
 <p>每个页的类型由<code>FIL_PAGE_TYPE</code>表示，比如像数据页的该字段的值就是<code>0x45BF</code>，我们后边会介绍各种不同类型的页，不同类型的页在该字段上的值是不同的。</p>
@@ -162,17 +152,17 @@
 <h2 class="heading">独立表空间结构</h2>
 <p>我们知道<code>InnoDB</code>支持许多种类型的表空间，本章重点关注独立表空间和系统表空间的结构。它们的结构比较相似，但是由于系统表空间中额外包含了一些关于整个系统的信息，所以我们先挑简单一点的独立表空间来唠叨，稍后再说系统表空间的结构。</p>
 <h3 class="heading">区（extent）的概念</h3>
-<p>表空间中的页实在是太多了，为了更好的管理这些页面，设计<code>InnoDB</code>的大叔们提出了<code>区</code>（英文名：<code>extent</code>）的概念。对于16KB的页来说，连续的64个页就是一个<code>区</code>，也就是说一个区默认占用1MB空间大小。不论是系统表空间还是独立表空间，都可以看成是由若干个区组成的，每256个区被划分成一组。画个图表示就是这样：</p>
+<p>表空间中的页实在是太多了，为了更好的管理这些页面，设计<code>InnoDB</code>的大叔们提出了<code>区</code>（英文名：<code>extent</code>）的概念。<u>对于16KB的页来说，连续的64个页就是一个<code>区</code>，也就是说一个区默认占用1MB空间大小。</u></p><p>不论是系统表空间还是独立表空间，都可以看成是由若干个区组成的，每256个区被划分成一组。画个图表示就是这样：</p>
 <p></p><figure><img alt="image_1cri1nutcorp5ghf5c7vqagt1j.png-71.4kB" src="https://user-gold-cdn.xitu.io/2018/12/14/167ac6442f8e6644?w=662&amp;h=547&amp;f=png&amp;s=73092"><figcaption></figcaption></figure><p></p>
 <p>其中<code>extent 0</code> ~ <code>extent 255</code>这256个区算是第一个组，<code>extent 256</code> ~ <code>extent 511</code>这256个区算是第二个组，<code>extent 512</code> ~ <code>extent 767</code>这256个区算是第三个组（上图中并未画全第三个组全部的区，请自行脑补），依此类推可以划分更多的组。这些组的头几个页面的类型都是类似的，就像这样：</p>
 <p></p><figure><img alt="image_1crjo0hl4q8u1dkdofe187b10fa9.png-105.2kB" src="https://user-gold-cdn.xitu.io/2018/12/14/167ac6443071a286?w=826&amp;h=657&amp;f=png&amp;s=107694"><figcaption></figcaption></figure><p></p>
 <p>从上图中我们能得到如下信息：</p>
 <ul>
 <li>
-<p>第一个组最开始的由3个页面的类型是固定的，也就是说<code>extent 0</code>这个区最开始的3个页面的类型是固定的，分别是：</p>
+<p><span style="color:red">第一个组最开始的3个页面的类型是固定的</span>，也就是说<code>extent 0</code>这个区最开始的3个页面的类型是固定的，分别是：</p>
 <ul>
 <li>
-<p><code>FSP_HDR</code>类型：这个类型的页面是用来登记整个表空间的一些整体属性以及本组所有的<code>区</code>，也就是<code>extent 0</code> ~ <code>extent 255</code>这256个区的属性，稍后详细唠叨。需要注意的一点是，整个表空间只有一个<code>FSP_HDR</code>类型的页面。</p>
+<p><code>FSP_HDR</code>类型：这个类型的页面是用来登记整个表空间的一些整体属性以及本组所有的<code>区</code>（即<code>extent 0</code> ~ <code>extent 255</code>这256个区）的属性，稍后详细唠叨。</p><p>需要注意的一点是，整个表空间只有一个<code>FSP_HDR</code>类型的页面。</p>
 </li>
 <li>
 <p><code>IBUF_BITMAP</code>类型：这个类型的页面是存储本组所有的区的所有页面关于<code>INSERT BUFFER</code>的信息。当然，你现在不用知道啥是个<code>INSERT BUFFER</code>，后边会详细说到你吐。</p>
@@ -183,10 +173,11 @@
 </ul>
 </li>
 <li>
-<p>其余各组最开始的2个页面的类型是固定的，也就是说<code>extent 256</code>、<code>extent 512</code>这些区最开始的2个页面的类型是固定的，分别是：</p>
+<p><span style="color:red">其余各组最开始的2个页面的类型是固定的</span>，也就是说<code>extent 256</code>、<code>extent 512</code>这些区最开始的2个页面的类型是固定的，分别是：</p>
 <ul>
 <li>
-<p><code>XDES</code>类型：全称是<code>extent descriptor</code>，用来登记本组256个区的属性，也就是说对于在<code>extent 256</code>区中的该类型页面存储的就是<code>extent 256</code> ~ <code>extent 511</code>这些区的属性，对于在<code>extent 512</code>区中的该类型页面存储的就是<code>extent 512</code> ~ <code>extent 767</code>这些区的属性。上边介绍的<code>FSP_HDR</code>类型的页面其实和<code>XDES</code>类型的页面的作用类似，只不过<code>FSP_HDR</code>类型的页面还会额外存储一些表空间的属性。</p>
+<p><code>XDES</code>类型：全称是<code>extent descriptor</code>，用来登记本组256个区的属性，也就是说对于在<code>extent 256</code>区中的该类型页面存储的就是<code>extent 256</code> ~ <code>extent 511</code>这些区的属性，对于在<code>extent 512</code>区中的该类型页面存储的就是<code>extent 512</code> ~ <code>extent 767</code>这些区的属性。</p>
+<p>上边介绍的<code>FSP_HDR</code>类型的页面其实和<code>XDES</code>类型的页面的作用类似，只不过<code>FSP_HDR</code>类型的页面还会额外存储一些表空间的属性。</p>
 </li>
 <li>
 <p><code>IBUF_BITMAP</code>类型：上边介绍过了。</p>
@@ -194,7 +185,7 @@
 </ul>
 </li>
 </ul>
-<p>好了，宏观的结构介绍完了，里边儿的名词大家也不用记清楚，只要大致记得：表空间被划分为许多连续的<code>区</code>，每个区默认由64个页组成，每256个区划分为一组，每个组的最开始的几个页面类型是固定的就好了。</p>
+<p>好了，宏观的结构介绍完了，里边儿的名词大家也不用记清楚，<span style="color:red">只需要大致记得：表空间被划分为许多连续的<code>区</code>，每个区默认由64个页组成，每256个区划分为一组，每个组的最开始的几个页面类型是固定的就好了。</span></p>
 <h3 class="heading">段（segment）的概念</h3>
 <p>为啥好端端的提出一个<code>区</code>（<code>extent</code>）的概念呢？我们以前分析问题的套路都是这样的：表中的记录存储到页里边儿，然后页作为节点组成<code>B+</code>树，这个<code>B+</code>树就是索引，然后吧啦吧啦一堆聚簇索引和二级索引的区别。这套路也没啥不妥的呀～</p>
 <p>是的，如果我们表中数据量很少的话，比如说你的表中只有几十条、几百条数据的话，的确用不到<code>区</code>的概念，因为简单的几个页就能把对应的数据存储起来，但是你架不住表里的记录越来越多呀。</p>
