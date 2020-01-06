@@ -1,20 +1,21 @@
 <h1 class="heading">InnoDB记录存储结构</h1>
 <p>标签： MySQL 是怎样运行的</p>
 <hr>
-<h2 class="heading">准备工作</h2>
+<h2 class="heading" style="color:green">准备工作</h2>
 <p>到现在为止，<code>MySQL</code>对于我们来说还是一个黑盒，我们只负责使用客户端发送请求并等待服务器返回结果，表中的数据到底存到了哪里？以什么格式存放的？<code>MySQL</code>是以什么方式来访问的这些数据？</p>
 <p>我们前边唠叨请求处理过程的时候提到过，<code>MySQL</code>服务器上负责对表中数据的读取和写入工作的部分是<code>存储引擎</code>，而服务器又支持不同类型的存储引擎，比如<code>InnoDB</code>、<code>MyISAM</code>、<code>Memory</code>啥的，不同的存储引擎一般是由不同的人为实现不同的特性而开发的，<span style="color:red">真实数据在不同存储引擎中存放的格式一般是不同的</span>，甚至有的存储引擎比如<code>Memory</code>都不用磁盘来存储数据，也就是说关闭服务器后表中的数据就消失了。由于<code>InnoDB</code>是<code>MySQL</code>默认的存储引擎，也是我们最常用到的存储引擎，我们也没有那么多时间去把各个存储引擎的内部实现都看一遍，所以本集要唠叨的是使用<code>InnoDB</code>作为存储引擎的数据存储结构，了解了一个存储引擎的数据存储结构之后，其他的存储引擎都是依葫芦画瓢，等我们用到了再说哈～</p>
 <h2 class="heading" style="color:green">InnoDB页简介</h2>
-<p><code>InnoDB</code>是一个将表中的数据存储到磁盘上的存储引擎，所以即使关机后重启我们的数据还是存在的。</p>
-<p>而真正处理数据的过程是发生在内存中的，所以需要把磁盘中的数据加载到内存中，如果是处理写入或修改请求的话，还需要把内存中的内容刷新到磁盘上。</p>
-<p>而我们知道读写磁盘的速度非常慢，和内存读写差了几个数量级，所以当我们想从表中获取某些记录时，<code>InnoDB</code>存储引擎需要一条一条的把记录从磁盘上读出来么？不，那样会慢死，<code>InnoDB</code>采取的方式是：<span style="color:red">将数据划分为若干个页，以页作为磁盘和内存之间交互的基本单位，InnoDB中页的大小一般为 <em><strong>16</strong></em> KB</span>。也就是在一般情况下，一次最少从磁盘中读取16KB的内容到内存中，一次最少把内存中的16KB内容刷新到磁盘中。</p>
+<p><code>InnoDB存储引擎</code>是将表中的数据存储到磁盘上的，所以即使关机后重启我们的数据还是存在的。而真正处理数据的过程是发生在内存中的，所以需要把磁盘中的数据加载到内存中，如果是处理写入或修改请求的话，还需要把内存中的内容刷新到磁盘上。</p>
+<p>而我们知道读写磁盘的速度非常慢，和内存读写差了几个数量级，所以当我们想从表中获取某些记录时，<code>InnoDB</code>存储引擎需要一条一条的把记录从磁盘上读出来么？不，那样会慢死，<span style="color:red"><code>InnoDB</code>采取的方式是：将数据划分为若干个页，以页作为磁盘和内存之间交互的基本单位，InnoDB中页的大小一般为 <em><strong>16</strong></em> KB</span>。也就是在一般情况下，一次最少从磁盘中读取16KB的内容到内存中，一次最少把内存中的16KB内容刷新到磁盘中。</p>
+
+
 <h2 class="heading" style="color:green">InnoDB行格式</h2>
-<p>我们平时是以记录为单位来向表中插入数据的，这些记录在磁盘上的存放方式也被称为<code>行格式</code>或者<code>记录格式</code>。设计<code>InnoDB</code>存储引擎的大叔们到现在为止设计了4种不同类型的<code>行格式</code>，分别是<code>Compact</code>、<code>Redundant</code>、<code>Dynamic</code>和<code>Compressed</code>行格式，随着时间的推移，他们可能会设计出更多的行格式，但是不管怎么变，在原理上大体都是相同的。</p>
-<h3 class="heading" style="color:blue">指定行格式的语法</h3>
-<p>我们可以在创建或修改表的语句中指定<code>行格式</code>：</p>
-<pre><code class="hljs bash" lang="bash" style="color:red">CREATE TABLE 表名 (列的信息) ROW_FORMAT=行格式名称
-    
-ALTER TABLE 表名 ROW_FORMAT=行格式名称
+<p><u>我们平时是以记录为单位来向表中插入数据的，这些记录在磁盘上的存放方式也被称为<code style="color:blue">行格式（或记录格式）</code>。设计<code>InnoDB</code>存储引擎的大叔们到现在为止设计了4种不同类型的<code>行格式</code>，分别是<code>Compact</code>、<code>Redundant</code>、<code>Dynamic</code>和<code>Compressed</code>行格式</u>，随着时间的推移，他们可能会设计出更多的行格式，但是不管怎么变，在原理上大体都是相同的。</p>
+
+<h3 class="heading" style="color:blue">1、指定行格式的语法</h3>
+<p><u>我们可以在创建或修改表的语句中为表指定<code>行格式</code>：</u></p>
+<pre><code class="hljs bash" lang="bash">CREATE TABLE 表名 (列的信息) <span style="color:red">ROW_FORMAT=行格式名称</span>
+ALTER TABLE 表名 <span style="color:red">ROW_FORMAT=行格式名称</span>
 </code></pre><p>比如我们在<code>xiaohaizi</code>数据库里创建一个演示用的表<code>record_format_demo</code>，可以这样指定它的<code>行格式</code>：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; USE xiaohaizi;
 Database changed
@@ -42,19 +43,18 @@ Records: 2  Duplicates: 0  Warnings: 0
 
 mysql&gt;
 </code></pre><p>演示表的内容也填充好了，现在我们就来看看各个行格式下的存储方式到底有啥不同吧～</p>
-<h3 class="heading" style="color:blue">COMPACT行格式</h3>
+
+<h3 class="heading" style="color:blue">2、COMPACT行格式</h3>
 <p>废话不多说，直接看图：</p>
 <p></p><figure><img alt="image_1c9g4t114n0j1gkro2r1h8h1d1t16.png-42.4kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5702043d7?w=783&amp;h=250&amp;f=png&amp;s=43461"><figcaption></figcaption></figure><p></p>
-<p>大家从图中可以看出来，一条完整的记录其实可以被分为<code>记录的额外信息</code>和<code>记录的真实数据</code>两大部分，下边我们详细看一下这两部分的组成。</p>
-<h4 class="heading" style="color:brown">记录的额外信息</h4>
-<p>这部分信息是<span style="color:red">服务器为了描述这条记录而不得不额外添加的一些信息</span>，这些额外信息分为3类，分别是<code>变长字段长度列表</code>、<code>NULL值列表</code>和<code>记录头信息</code>，我们分别看一下。</p>
-<h5 class="heading" style="color:orange">变长字段长度列表</h5>
-<p>我们知道<code>MySQL</code>支持一些变长的数据类型，比如<code>VARCHAR(M)</code>、<code>VARBINARY(M)</code>、各种<code>TEXT</code>类型，各种<code>BLOB</code>类型，我们也可以把拥有这些数据类型的列称为<code>变长字段</code>，变长字段中存储多少字节的数据是不固定的，所以我们在存储真实数据的时候需要顺便把这些数据占用的字节数也存起来，这样才不至于把<code>MySQL</code>服务器搞懵，所以这些<span style="color:red">变长字段占用的存储空间分为两部分</span>：</p>
-<ol>
-<li>真正的数据内容</li>
-<li>占用的字节数</li>
-</ol>
-<p>在<code>Compact</code>行格式中，<span style="color:red">把所有变长字段的真实数据占用的字节长度都存放在记录的开头部位，从而形成一个变长字段长度列表，各变长字段数据占用的字节数按照列的顺序逆序存放</span>，我们再次强调一遍，是<span style="color:red">逆序</span>存放！</p>
+<p>大家从图中可以看出来，<b>一条完整的记录其实可以被分为<code style="color:blue">记录的额外信息</code>和<code style="color:blue">记录的真实数据</code>两大部分</b>，下边我们详细看一下这两部分的组成。</p>
+
+<h4 class="heading" style="color:brown">2.1、记录的额外信息</h4>
+<p><u><code style="color:blue">记录的额外信息</code>是服务器为了描述这条记录而不得不额外添加的一些信息，这些额外信息分为3类，分别是<code style="color:blue">变长字段长度列表</code>、<code style="color:blue">NULL值列表</code>和<code style="color:blue">记录头信息</code></u>，我们分别看一下。</p>
+
+<h5 class="heading" style="color:purple">2.1.1、变长字段长度列表</h5>
+<p><code>MySQL</code>支持一些变长的数据类型，比如<code>VARCHAR(M)</code>、<code>VARBINARY(M)</code>、各种<code>TEXT</code>类型，各种<code>BLOB</code>类型，我们也可以把拥有这些数据类型的列称为<code style="color:blue">变长字段</code>，变长字段中存储多少字节的数据是不固定的，所以我们在存储真实数据的时候需要顺便把这些数据占用的字节数也存起来，这样才不至于把<code>MySQL</code>服务器搞懵，<span style="color:red">所以这些变长字段占用的存储空间分为两部分：真正的数据内容、占用的字节数。</span></p>
+<p style="color:red">在<code>Compact</code>行格式中，把所有变长字段的真实数据占用的字节长度都存放在记录的开头部位，从而形成一个变长字段长度列表，各变长字段数据占用的字节数按照列的顺序<span style="color:blue">逆序</span>存放。</p>
 <p>我们拿<code>record_format_demo</code>表中的第一条记录来举个例子。因为<code>record_format_demo</code>表的<code>c1</code>、<code>c2</code>、<code>c4</code>列都是<code>VARCHAR(10)</code>类型的，也就是变长的数据类型，所以这三个列的值的长度都需要保存在记录开头处，因为<code>record_format_demo</code>表中的各个列都使用的是<code>ascii</code>字符集，所以每个字符只需要1个字节来进行编码，来看一下第一条记录各变长字段内容的长度：</p>
 <table>
 <thead>
@@ -90,7 +90,8 @@ mysql&gt;
 <pre><code class="hljs bash" lang="bash">01 03 04 
 </code></pre><p>把这个字节串组成的<code>变长字段长度列表</code>填入上边的示意图中的效果就是：</p>
 <p></p><figure><img alt="image_1c9gbruvo504dlg1qsf19nbeu878.png-37kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f570f8ed73?w=1004&amp;h=192&amp;f=png&amp;s=37847"><figcaption></figcaption></figure><p></p>
-<p>由于第一行记录中<code>c1</code>、<code>c2</code>、<code>c4</code>列中的字符串都比较短，也就是说内容占用的字节数比较小，用1个字节就可以表示，但是如果变长列的内容占用的字节数比较多，可能就需要用2个字节来表示。具体用1个还是2个字节来表示真实数据占用的字节数，<code>InnoDB</code>有它的一套规则，我们首先声明一下<code>W</code>、<code>M</code>和<code>L</code>的意思：</p>
+<p>由于第一行记录中<code>c1</code>、<code>c2</code>、<code>c4</code>列中的字符串都比较短，也就是说内容占用的字节数比较小，用1个字节就可以表示，但是如果变长列的内容占用的字节数比较多，可能就需要用2个字节来表示。<u><span style="color:red">具体用1个还是2个字节来表示真实数据占用的字节数，<code>InnoDB</code>有它的一套规则</span></u>.</p>
+<p>我们<u>首先声明一下<code>W</code>、<code>M</code>和<code>L</code>的意思：</u></p>
 <ol>
 <li>
 <p>假设某个字符集中表示一个字符最多需要使用的字节数为<code>W</code>，也就是使用<code>SHOW CHARSET</code>语句的结果中的<code>Maxlen</code>列，比方说<code>utf8</code>字符集中的<code>W</code>就是<code>3</code>，<code>gbk</code>字符集中的<code>W</code>就是<code>2</code>，<code>ascii</code>字符集中的<code>W</code>就是<code>1</code>。</p>
@@ -102,7 +103,7 @@ mysql&gt;
 <p>假设它实际存储的字符串占用的字节数是<code>L</code>。</p>
 </li>
 </ol>
-<p>所以确定使用1个字节还是2个字节表示真正字符串占用的字节数的规则就是这样：</p>
+<p>所以<u>确定使用1个字节还是2个字节来表示真正字符串占用的字节数的规则就是这样：</u></p>
 <ul>
 <li>
 <p>如果<code>M×W &lt;= 255</code>，那么使用1个字节来表示真正字符串占用的字节数。</p>
@@ -118,8 +119,7 @@ mysql&gt;
 <p>如果<code>L &gt; 127</code>，则用2个字节来表示真正字符串占用的字节数。</p>
 </li>
 </ul>
-<blockquote class="warning"><p>InnoDB在读记录的变长字段长度列表时先查看表结构，如果某个变长字段允许存储的最大字节数大于255时，该怎么区分它正在读的某个字节是一个单独的字段长度还是半个字段长度呢？设计InnoDB的大叔使用该字节的第一个二进制位作为标志位：如果该字节的第一个位为0，那该字节就是一个单独的字段长度（使用一个字节表示不大于127的二进制的第一个位都为0），如果该字节的第一个位为1，那该字节就是半个字段长度。
-
+<blockquote class="warning"><p><u>InnoDB在读记录的变长字段长度列表时会查看表结构，如果某个变长字段允许存储的最大字节数大于255时，该怎么区分它正在读的某个字节是<b>一个完整的字段长度信息</b>还是<b>一个字段长度信息的一半</b>呢？</u>设计InnoDB的大叔使用该字节的第一个二进制位作为标志位：如果该字节的第一个位为0，那该字节就是一个完整的字段长度信息（能表示的最大长度为2<sup>7</sup>-1=127），如果该字节的第一个位为1，那该字节就是一个字段长度信息的一半。<br>
 对于一些占用字节数非常多的字段，比方说某个字段长度大于了16KB，那么如果该记录在单个页面中无法存储时，InnoDB会把一部分数据存放到所谓的溢出页中（我们后边会唠叨），在变长字段长度列表处只存储留在本页面中的长度，所以使用两个字节也可以存放下来。
 </p></blockquote></li>
 </ul>
@@ -129,7 +129,7 @@ mysql&gt;
 <blockquote class="warning"><p>小贴士：
 
 并不是所有记录都有这个 变长字段长度列表 部分，比方说表中所有的列都不是变长的数据类型的话，这一部分就不需要有。
-</p></blockquote><h5 class="heading" style="color:orange">NULL值列表</h5>
+</p></blockquote><h5 class="heading" style="color:purple">NULL值列表</h5>
 <p>我们知道表中的某些列可能存储<code>NULL</code>值，如果把这些<code>NULL</code>值都放到<code>记录的真实数据</code>中存储会很占地方，所以<code>Compact</code>行格式把这些值为<code>NULL</code>的列统一管理起来，存储到<code>NULL</code>值列表中，它的处理过程是这样的：</p>
 <ol>
 <li>
@@ -168,7 +168,7 @@ mysql&gt;
 </ul>
 <p>所以这两条记录在填充了<code>NULL值列表</code>后的示意图就是这样：</p>
 <p></p><figure><img alt="image_1c9grs9m4co8134u1t2rjhm1q6rc0.png-39kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5a7c50032?w=729&amp;h=233&amp;f=png&amp;s=39932"><figcaption></figcaption></figure><p></p>
-<h5 class="heading" style="color:orange">记录头信息</h5>
+<h5 class="heading" style="color:purple">记录头信息</h5>
 <p>除了<code>变长字段长度列表</code>、<code>NULL值列表</code>之外，还有一个用于描述记录的<code>记录头信息</code>，它是由固定的<code>5</code>个字节组成。<code>5</code>个字节也就是<code>40</code>个二进制位，不同的位代表不同的意思，如图：</p>
 <p></p><figure><img alt="image_1c9geiglj1ah31meo80ci8n1eli8f.png-29.5kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5a87e0271?w=1174&amp;h=244&amp;f=png&amp;s=30222"><figcaption></figcaption></figure><p></p>
 <p>这些二进制位代表的详细信息如下表：</p>
@@ -290,7 +290,9 @@ Records: 2  Duplicates: 0  Warnings: 0
 <p></p><figure><img alt="image_1c9jeb6defgf1o981lgfciokjl4.png-43.1kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5d047e541?w=545&amp;h=459&amp;f=png&amp;s=44156"><figcaption></figcaption></figure><p></p>
 <p>这就意味着：<span style="color:red">对于 <em><strong>CHAR(M)</strong></em> 类型的列来说，当列采用的是定长字符集时，该列占用的字节数不会被加到变长字段长度列表，而如果采用变长字符集时，该列占用的字节数也会被加到变长字段长度列表</span>。</p>
 <p><span style="color:red">另外有一点还需要注意：变长字符集的<code>CHAR(M)</code>类型的列要求至少占用<code>M</code>个字节</span>，而<code>VARCHAR(M)</code>却没有这个要求。比方说对于使用<code>utf8</code>字符集的<code>CHAR(10)</code>的列来说，该列存储的数据字节长度的范围是10～30个字节。即使我们向该列中存储一个空字符串也会占用<code>10</code>个字节，<u>这是怕将来更新该列的值的字节长度大于原有值的字节长度而小于10个字节时，可以在该记录处直接更新，而不是在存储空间中重新分配一个新的记录空间，导致原有的记录空间称为所谓的碎片</u>。（这里你感受到设计<code>Compact</code>行格式的大叔既想节省存储空间，又不想更新<code>CHAR(M)</code>类型的列产生碎片时的纠结心情了吧。）</p>
-<h3 class="heading" style="color:blue"><s>Redundant行格式</s></h3>
+
+
+<h3 class="heading" style="color:blue"><s>3、Redundant行格式</s></h3>
 <p>其实知道了<code>Compact</code>行格式之后，其他的行格式就是依葫芦画瓢了。我们现在要介绍的<code>Redundant</code>行格式是<span style="color:red"><code>MySQL5.0</code>之前用的一种行格式</span>，也就是说它已经非常老了，但是本着知识完整性的角度还是要提一下，大家乐呵乐呵的看就好。</p>
 <p>画个图展示一下<code>Redundant</code>行格式的全貌：</p>
 <p></p><figure><img alt="image_1c9h896lcuqi16081qub1v8c12jkft.png-36.2kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5d1399d5f?w=618&amp;h=251&amp;f=png&amp;s=37063"><figcaption></figcaption></figure><p></p>
@@ -435,7 +437,9 @@ next_record:0xBC
 <p>除了以上的几点之外，<code>Redundant</code>行格式和<code>Compact</code>行格式还是大致相同的。</p>
 <h4 class="heading">CHAR(M)列的存储格式</h4>
 <p>我们知道<code>Compact</code>行格式在<code>CHAR(M)</code>类型的列中存储数据的时候还挺麻烦，分变长字符集和定长字符集的情况，而在<code>Redundant</code>行格式中十分干脆，不管该列使用的字符集是啥，只要是使用<code>CHAR(M)</code>类型，占用的真实数据空间就是该字符集表示一个字符最多需要的字节数和<code>M</code>的乘积。比方说使用<code>utf8</code>字符集的<code>CHAM(10)</code>类型的列占用的真实数据空间始终为<code>30</code>个字节，使用<code>gbk</code>字符集的<code>CHAM(10)</code>类型的列占用的真实数据空间始终为<code>20</code>个字节。由此可以看出来，使用<code>Redundant</code>行格式的<code>CHAR(M)</code>类型的列是不会产生碎片的。</p>
-<h3 class="heading" style="color:blue">行溢出数据</h3>
+
+
+<h3 class="heading" style="color:blue">4、行溢出数据</h3>
 <h4 class="heading" style="color:brown">VARCHAR(M)最多能存储的数据</h4>
 <p>我们知道对于<code>VARCHAR(M)</code>类型的列最多可以占用<code>65535</code>个字节。其中的<code>M</code>代表该类型最多存储的字符数量，如果我们使用<code>ascii</code>字符集的话，一个字符就代表一个字节，我们看看<code>VARCHAR(65535)</code>是否可用：</p>
 <pre><code class="hljs bash" lang="bash">mysql&gt; CREATE TABLE varchar_size_demo(
@@ -517,12 +521,15 @@ Query OK, 1 row affected (0.00 sec)
 <p>假设一个列中存储的数据字节数为n，那么发生<code>行溢出</code>现象时需要满足这个式子：</p>
 <pre><code class="hljs bash" lang="bash">136 + 2×(27 + n) &gt; 16384
 </code></pre><p>求解这个式子得出的解是：<code>n &gt; 8098</code>。也就是说如果一个列中存储的数据不大于<code>8098</code>个字节，那就不会发生<code>行溢出</code>，否则就会发生<code>行溢出</code>。不过这个<code>8098</code>个字节的结论只是针对只有一个列的<code>varchar_size_demo</code>表来说的，如果表中有多个列，那上边的式子和结论都需要改一改了，所以重点就是：<span style="color:red">你不用关注这个临界点是什么，只要知道如果我们想一个行中存储了很大的数据时，可能发生<code>行溢出</code>的现象</span>。</p>
-<h3 class="heading" style="color:blue">Dynamic和Compressed行格式</h3>
+
+<h3 class="heading" style="color:blue">5、Dynamic和Compressed行格式</h3>
 <p>下边要介绍另外两个行格式，<code>Dynamic</code>和<code>Compressed</code>行格式，我现在使用的<code>MySQL</code>版本是<code>5.7</code>，它的默认行格式就是<code>Dynamic</code>。</p>
 <p style="color:red">这俩行格式和<code>Compact</code>行格式挺像，只不过在处理<code>行溢出</code>数据时有点儿分歧，它们不会在记录的真实数据处存储字段真实数据的前<code>768</code>个字节，而是把所有的字节都存储到其他页面中，只在记录的真实数据处存储其他页面的地址，就像这样：</p>
 <p></p><figure><img alt="image_1conbtnmr1sg1hao1nf41pi1eb72a.png-29.9kB" src="https://user-gold-cdn.xitu.io/2019/2/21/169104f5ff959467?w=791&amp;h=219&amp;f=png&amp;s=30573"><figcaption></figcaption></figure><p></p>
 <p><code>Compressed</code>行格式和<code>Dynamic</code>不同的一点是，<code>Compressed</code>行格式会采用<span style="color:red">压缩</span>算法对页面进行压缩，以节省空间。</p>
-<h3 class="heading" style="color:blue">CHAR(M)中的M值过大的情况</h3>
+
+
+<h3 class="heading" style="color:blue">6、CHAR(M)中的M值过大的情况</h3>
 <p><code>CHAR(M)</code>类型的列可以存储的最大字节长度等于该列使用的字符集表示一个字符需要的最大字节数和<code>M</code>的乘积。如果某个列使用的是<code>CHAR(M)</code>类型，并且它可以存储的最大字节长度超过<code>768</code>字节，那么不论我们使用的是上述4种的哪种行格式，<code>InnoDB</code>都会把该列当成变长字段看待。比方说采用<code>utf8mb4</code>的<code>CHAR(255)</code>类型的列将会被当作变长字段看待，因为<code>4×255 &gt; 768</code>。</p>
 <h2 class="heading" style="color:green">总结</h2>
 <ol>
