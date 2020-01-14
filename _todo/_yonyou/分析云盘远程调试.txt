@@ -1,0 +1,5 @@
+set jpda_transport=dt_socket
+set jpda_address=9000
+set jpda_suspend=n
+call "%EXECUTABLE%" jpda start %CMD_LINE_ARGS%
+rem call "%EXECUTABLE%" run %CMD_LINE_ARGS%
