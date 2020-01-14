@@ -1,0 +1,2 @@
+-- encode(col,'hex') decode(col,'hex')
+select define, encode(define, 'hex') from bq_analytic_obj_define_big_obj where analytic_obj_uid='bd0d797a-011e-4317-8190-eb551f6f1bdf';
