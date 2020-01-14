@@ -1,1 +1,0 @@
-bin/mysql --defaults-file=`pwd`/my.cnf -hlocalhost -uroot -p

@@ -1,5 +1,0 @@
-my.cnf 为mysql的配置文件，其中最重要的参数为innodb_buffer_pool_size，
-需要把该参数调整为服务器内存的2/3左右，不能超过服务器内存
-nginx.conf为nginx的配置文件，其中worker_processes调整为cpu核心数即可
-haproxy.cfg 为mysql负载均衡haproxy的配置文件，其中需要调整参数为nbproc，该参数为cpu核心数即可
-
